@@ -12,7 +12,9 @@ Axon bietet verschiedene Tools, die die KI verwenden kann. Jedes Tool erfordert 
 | `web_fetch` | URL abrufen | Mittel |
 | `web_search` | Web-Suche | Niedrig |
 | `shell_execute` | Shell-Command | Hoch |
-| `code_execute` | Python-Code | Hoch |
+| `memory_save` | Fakt im Gedächtnis speichern | Niedrig |
+| `memory_search` | Gedächtnis durchsuchen | Niedrig |
+| `memory_delete` | Eintrag aus Gedächtnis löschen | Niedrig |
 
 ## File Tools
 
@@ -126,38 +128,6 @@ pip list, npm list
 Führe "ls -la" aus
 ```
 
-## Code Tools
-
-### code_execute
-
-Führt Python-Code in einer Sandbox aus.
-
-**Parameter:**
-- `code` (string, required): Python-Code
-
-**Einschränkungen:**
-- RestrictedPython Sandbox
-- Timeout: 30 Sekunden
-- Memory: 256MB
-- Kein Netzwerk-Zugriff
-- Kein Dateisystem-Zugriff (außer /outputs/)
-
-**Erlaubte Module:**
-- math
-- datetime
-- json
-- re
-
-**Blockiert:**
-- os, sys, subprocess
-- open(), exec(), eval()
-- Import beliebiger Module
-
-**Beispiel:**
-```
-Berechne die Summe von 1 bis 100 mit Python
-```
-
 ## Risiko-Level
 
 ### Niedrig (Low)
@@ -175,9 +145,8 @@ Diese Tools können Daten lesen oder schreiben, aber nur in kontrollierten Berei
 
 ### Hoch (High)
 - shell_execute
-- code_execute
 
-Diese Tools können potenziell gefährliche Aktionen ausführen. Trotz Sandbox und Whitelist sollten sie mit Vorsicht genehmigt werden.
+Dieses Tool kann potenziell gefährliche Aktionen ausführen. Trotz Whitelist sollte es mit Vorsicht genehmigt werden.
 
 ## Genehmigungsoptionen
 
@@ -187,6 +156,48 @@ Wenn ein Tool Genehmigung anfordert:
 2. **Für Session erlauben**: Für die gesamte Chat-Session
 3. **Ablehnen**: Tool wird nicht ausgeführt
 4. **Nie erlauben**: Tool wird dauerhaft blockiert (für diese Session)
+
+## Memory Tools
+
+### memory_save
+
+Speichert einen Fakt im persistenten Langzeitgedächtnis.
+
+**Parameter:**
+- `key` (string, required): Kurzform / Thema
+- `content` (string, required): Der eigentliche Fakt
+- `category` (string, optional): Kategorie (z.B. "Präferenz", "Projekt")
+
+**Kein Approval erforderlich** — Memory-Tools haben niedriges Risiko.
+
+**Beispiel:**
+```
+Merk dir, dass ich Python bevorzuge
+```
+
+### memory_search
+
+Durchsucht das Langzeitgedächtnis nach relevanten Fakten.
+
+**Parameter:**
+- `query` (string, required): Suchbegriff
+
+**Beispiel:**
+```
+Was weißt du über meine Programmiersprache?
+```
+
+### memory_delete
+
+Löscht einen Eintrag aus dem Gedächtnis.
+
+**Parameter:**
+- `key` (string, required): Der Key der zu löschenden Erinnerung
+
+**Beispiel:**
+```
+Vergiss meine Lieblingsprogrammiersprache
+```
 
 ## Custom Tools
 

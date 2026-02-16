@@ -164,10 +164,10 @@ class AgentOrchestrator:
                         session_id, tool_name, tool_params, decision.value
                     )
 
-                # Execute the tool
+                # Execute the tool (pass db_session for memory tools)
                 start_time = time.time()
                 try:
-                    result = await execute_tool(tool_name, tool_params)
+                    result = await execute_tool(tool_name, tool_params, db_session=self.audit.db)
                     execution_time_ms = int((time.time() - start_time) * 1000)
 
                     await self.audit.log_tool_execution(

@@ -73,6 +73,38 @@ class AuditLog(Base):
     conversation = relationship("Conversation", back_populates="audit_logs")
 
 
+class Memory(Base):
+    """Persistent Agent Memory — facts the AI remembers across conversations"""
+    __tablename__ = "memories"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    key = Column(String(255), nullable=False, unique=True)  # Thema / Kurzform
+    content = Column(Text, nullable=False)  # Der eigentliche Fakt
+    source = Column(String(50), nullable=False, default="user")  # user, agent, system
+    category = Column(String(100), nullable=True)  # optional: Kategorie
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Skill(Base):
+    """Registered Skills — Community-erweiterbare Fähigkeiten"""
+    __tablename__ = "skills"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(100), unique=True, nullable=False)
+    display_name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    file_path = Column(String(500), nullable=False)  # Pfad zum Skill-Modul
+    file_hash = Column(String(64), nullable=False)  # SHA-256 Hash für Integritätsprüfung
+    version = Column(String(20), default="1.0.0")
+    author = Column(String(100), nullable=True)
+    enabled = Column(Boolean, default=False)  # Erst nach Approval aktiv
+    approved = Column(Boolean, default=False)  # User hat den Skill explizit genehmigt
+    risk_level = Column(String(20), default="medium")  # low, medium, high, critical
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Settings(Base):
     """User Settings"""
     __tablename__ = "settings"

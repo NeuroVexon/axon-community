@@ -56,7 +56,6 @@ const toolIcons: Record<string, React.ReactNode> = {
   web_fetch: <Globe className="w-5 h-5" />,
   web_search: <Globe className="w-5 h-5" />,
   shell_execute: <Terminal className="w-5 h-5" />,
-  code_execute: <Terminal className="w-5 h-5" />,
 }
 
 export default function ToolApprovalModal({

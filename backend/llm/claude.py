@@ -18,12 +18,23 @@ class ClaudeProvider(BaseLLMProvider):
         self.model = settings.claude_model
         self.api_key = settings.anthropic_api_key
         self._client = None
+        self._current_key = None
+
+    def update_config(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        """Update provider configuration"""
+        if api_key and api_key != self._current_key:
+            self.api_key = api_key
+            self._client = None  # Force recreate client
+            self._current_key = api_key
+        if model:
+            self.model = model
 
     def _get_client(self):
-        if self._client is None:
+        if self._client is None or self._current_key != self.api_key:
             try:
                 from anthropic import AsyncAnthropic
                 self._client = AsyncAnthropic(api_key=self.api_key)
+                self._current_key = self.api_key
             except ImportError:
                 raise ImportError("anthropic package not installed. Run: pip install anthropic")
         return self._client

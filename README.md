@@ -41,35 +41,45 @@
 - Du entscheidest: **Erlauben** oder **Ablehnen**
 - Vollständiges **Audit-Log** aller Aktionen
 - **100% On-Premise** möglich - keine Cloud erforderlich
+- **Persistentes Gedächtnis** — Axon merkt sich Fakten über Konversationen hinweg
+- **Erweiterbar mit Skills** — Community-Plugins mit Sicherheits-Gate
 
 <p align="center">
   <img src="docs/images/screenshot.png" alt="Axon Screenshot" width="800">
 </p>
 
-## ✨ Features
+## Features
 
 | Feature | Beschreibung |
 |---------|--------------|
-| 🔧 **Controlled Tools** | File, Web, Shell - alles mit expliziter Bestätigung |
-| 🛡️ **Tool Approval UI** | Modales Fenster vor jeder Aktion mit Risiko-Anzeige |
-| 📊 **Audit Dashboard** | Alle Tool-Calls sichtbar und als CSV exportierbar |
-| 🤖 **Multi-Provider LLM** | Ollama (lokal), Claude API, OpenAI API |
-| 💬 **Chat Interface** | Modernes React UI mit Streaming |
-| 🐳 **Docker Deployment** | One-Command Setup |
-| 🔒 **DSGVO-konform** | On-Premise, keine externe Datenübertragung |
-| 🌙 **Dark Theme** | Modernes UI mit Cyan-Akzenten |
+| **Controlled Tools** | File, Web, Shell, Memory — alles mit expliziter Bestätigung |
+| **Tool Approval UI** | Modales Fenster vor jeder Aktion mit Risiko-Anzeige |
+| **Audit Dashboard** | Alle Tool-Calls sichtbar und als CSV exportierbar |
+| **Multi-Provider LLM** | Ollama (lokal), Claude API, OpenAI API |
+| **Agent Orchestrator** | Vollständige Agent-Loop mit Tool-Calls und Feedback |
+| **Persistentes Memory** | KI merkt sich Fakten über Konversationen hinweg |
+| **Skills System** | Erweiterbare Fähigkeiten mit Hash-basiertem Sicherheits-Gate |
+| **Messenger Integration** | Telegram und Discord Bots mit Inline-Approval |
+| **Verschlüsselte API-Keys** | Fernet-Verschlüsselung in der DB |
+| **Chat mit Streaming** | SSE-basiertes Streaming mit Konversationshistorie |
+| **Docker Deployment** | One-Command Setup |
+| **DSGVO-konform** | On-Premise, keine externe Datenübertragung |
+| **Dark Theme** | Modernes UI mit Cyan-Akzenten |
 
-## 🆚 Warum Axon?
+## Axon vs. OpenClaw / andere Agentic AI
 
-| Problem bei anderen Tools | Lösung bei Axon |
-|---------------------------|-----------------|
-| ❌ Keine Logs/Kontrolle | ✅ Vollständiges Audit-Log |
-| ❌ Tools laufen automatisch | ✅ Explizite Genehmigung für jeden Call |
-| ❌ Nur Cloud APIs | ✅ Ollama lokal möglich |
-| ❌ US-Server | ✅ 100% On-Premise |
-| ❌ Keine Transparenz | ✅ Open Source, lesbar |
+| | Axon | OpenClaw | Typische Chat-UIs |
+|---|---|---|---|
+| Tool-Kontrolle | Jeder Call einzeln genehmigt | Automatisch | Keine Tools |
+| Audit-Log | Vollständig, CSV-Export | Teilweise | Nein |
+| On-Premise | Ja (Ollama) | Nur Cloud | Nur Cloud |
+| Persistentes Memory | Ja (DB-basiert) | Nein | Nein |
+| Skills/Plugins | Ja, mit Sicherheits-Gate | Ja, ohne Gate | Nein |
+| Messenger-Bots | Telegram + Discord | Nein | Nein |
+| Open Source | BSL 1.1 | Proprietär | Variiert |
+| DSGVO-konform | Ja | Nein | Variiert |
 
-## 🚀 Schnellstart
+## Schnellstart
 
 ### Mit Docker (empfohlen)
 
@@ -88,7 +98,7 @@ docker-compose up -d
 docker exec axon-ollama ollama pull llama3.1:8b
 ```
 
-**Öffne http://localhost:3000** 🎉
+**Öffne http://localhost:3000**
 
 ### Manuelle Installation
 
@@ -115,19 +125,21 @@ npm start
 ```
 </details>
 
-## 🔧 Verfügbare Tools
+## Verfügbare Tools
 
 | Tool | Beschreibung | Risiko |
 |------|--------------|--------|
-| `file_read` | Datei lesen | 🟡 Mittel |
-| `file_write` | Datei schreiben (nur /outputs/) | 🟡 Mittel |
-| `file_list` | Verzeichnis auflisten | 🟢 Niedrig |
-| `web_fetch` | URL abrufen | 🟡 Mittel |
-| `web_search` | Web-Suche (DuckDuckGo) | 🟢 Niedrig |
-| `shell_execute` | Shell-Command (Whitelist) | 🔴 Hoch |
-| `code_execute` | Python in Sandbox | 🔴 Hoch |
+| `file_read` | Datei lesen | Mittel |
+| `file_write` | Datei schreiben (nur /outputs/) | Mittel |
+| `file_list` | Verzeichnis auflisten | Niedrig |
+| `web_fetch` | URL abrufen | Mittel |
+| `web_search` | Web-Suche (DuckDuckGo) | Niedrig |
+| `shell_execute` | Shell-Command (Whitelist) | Hoch |
+| `memory_save` | Fakt im Gedächtnis speichern | Niedrig |
+| `memory_search` | Gedächtnis durchsuchen | Niedrig |
+| `memory_delete` | Eintrag aus Gedächtnis löschen | Niedrig |
 
-## ⚙️ Konfiguration
+## Konfiguration
 
 ```env
 # LLM Provider: ollama, claude, openai
@@ -142,28 +154,40 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # OpenAI API (optional)
 OPENAI_API_KEY=sk-...
+
+# Telegram Bot (optional)
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_ALLOWED_USERS=  # Komma-getrennte User-IDs, leer = alle
+
+# Discord Bot (optional)
+DISCORD_BOT_TOKEN=MTIz...
+DISCORD_ALLOWED_CHANNELS=  # Komma-getrennte Channel-IDs
 ```
 
 Siehe [docs/CONFIGURATION.md](docs/CONFIGURATION.md) für alle Optionen.
 
-## 📖 Dokumentation
+## Dokumentation
 
 - [Installation](docs/INSTALLATION.md)
 - [Konfiguration](docs/CONFIGURATION.md)
 - [Tools](docs/TOOLS.md)
+- [Skills](docs/SKILLS.md)
+- [Messenger Integration](docs/MESSENGER.md)
 - [Security](SECURITY.md)
 - [API Reference](docs/API.md)
 
-## 🔐 Sicherheit
+## Sicherheit
 
-- **Shell Whitelist**: Nur vordefinierte Commands
-- **File Restriction**: Schreiben nur in /outputs/
-- **Code Sandbox**: RestrictedPython mit Timeout
+- **Shell Whitelist**: Nur vordefinierte Commands, Chaining blockiert
+- **File Restriction**: Schreiben nur in /outputs/, Path-Traversal blockiert
+- **URL Validation**: SSRF-Schutz (localhost, interne IPs, AWS IMDS blockiert)
+- **Verschlüsselte API-Keys**: Fernet-Verschlüsselung in der SQLite DB
+- **Skills Gate**: File-Hash Prüfung, automatische Revocation bei Änderung
 - **Audit Trail**: Jede Aktion wird geloggt
 
-Sicherheitslücken? → [SECURITY.md](SECURITY.md)
+Sicherheitslücken? [SECURITY.md](SECURITY.md)
 
-## 🤝 Contributing
+## Contributing
 
 Beiträge sind willkommen! Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -173,38 +197,38 @@ Beiträge sind willkommen! Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 4. Push zum Branch (`git push origin feature/AmazingFeature`)
 5. Öffne einen Pull Request
 
-## 📜 Lizenz
+## Lizenz
 
 **Business Source License 1.1** - siehe [LICENSE](LICENSE)
 
 | Nutzung | Erlaubt? |
 |---------|----------|
-| Private Nutzung | ✅ Ja |
-| Lernen & Forschung | ✅ Ja |
-| Evaluation (90 Tage) | ✅ Ja |
-| Non-Profit (bis 5 User) | ✅ Ja |
-| Forken & Pull Requests | ✅ Ja |
-| Produktive Geschäftsnutzung | ❌ Lizenz erforderlich |
-| SaaS / Hosting | ❌ Lizenz erforderlich |
+| Private Nutzung | Ja |
+| Lernen & Forschung | Ja |
+| Evaluation (90 Tage) | Ja |
+| Non-Profit (bis 5 User) | Ja |
+| Forken & Pull Requests | Ja |
+| Produktive Geschäftsnutzung | Lizenz erforderlich |
+| SaaS / Hosting | Lizenz erforderlich |
 
 **Ab Februar 2030:** Apache License 2.0
 
-## 🏢 Enterprise
+## Enterprise
 
 Für kommerzielle Nutzung:
 
 - **Axon Pro** - Für Einzelpersonen und kleine Teams
 - **Axon Enterprise** - Für Unternehmen
 
-→ [neurovexon.de/pricing](https://neurovexon.de/pricing)
+[neurovexon.de/pricing](https://neurovexon.de/pricing)
 
-## 💬 Community
+## Community
 
 - [GitHub Discussions](https://github.com/neurovexon/axon-community/discussions)
 - [GitHub Issues](https://github.com/neurovexon/axon-community/issues)
 - Email: support@neurovexon.de
 
-## ⭐ Star History
+## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=neurovexon/axon-community&type=Date)](https://star-history.com/#neurovexon/axon-community&Date)
 
@@ -216,5 +240,5 @@ Für kommerzielle Nutzung:
 </p>
 
 <p align="center">
-  Made with ❤️ in Germany
+  Made with Liebe in Germany
 </p>

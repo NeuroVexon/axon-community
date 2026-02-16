@@ -104,6 +104,86 @@ export const api = {
     }
   },
 
+  /**
+   * Stream a message through the Agent Orchestrator.
+   * Handles tool approval via SSE events.
+   */
+  async streamAgentMessage(
+    message: string,
+    onEvent: (event: {
+      type: string
+      content?: string
+      tool?: string
+      params?: Record<string, unknown>
+      description?: string
+      risk_level?: string
+      approval_id?: string
+      result?: unknown
+      execution_time_ms?: number
+      session_id?: string
+      message?: string
+      error?: string
+    }) => void,
+    sessionId?: string,
+    systemPrompt?: string
+  ): Promise<void> {
+    const response = await fetch(`${API_BASE}/chat/agent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        session_id: sessionId,
+        system_prompt: systemPrompt,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) return
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6))
+            onEvent(data)
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * Approve or reject a pending tool request from the agent stream.
+   */
+  async approveAgentTool(
+    approvalId: string,
+    decision: 'once' | 'session' | 'never'
+  ): Promise<void> {
+    const response = await fetch(
+      `${API_BASE}/chat/approve/${approvalId}?decision=${decision}`,
+      { method: 'POST' }
+    )
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+  },
+
   // Tool Approval
   async approveTool(
     sessionId: string,
@@ -203,6 +283,114 @@ export const api = {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
+  },
+
+  // Skills
+  async getSkills(): Promise<Array<{
+    id: string
+    name: string
+    display_name: string
+    description: string
+    version: string
+    author: string | null
+    enabled: boolean
+    approved: boolean
+    risk_level: string
+    created_at: string
+    updated_at: string
+  }>> {
+    const response = await fetch(`${API_BASE}/skills`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async approveSkill(id: string, approved: boolean): Promise<void> {
+    const response = await fetch(`${API_BASE}/skills/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved }),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async toggleSkill(id: string, enabled: boolean): Promise<void> {
+    const response = await fetch(`${API_BASE}/skills/${id}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async deleteSkill(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/skills/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async scanSkills(): Promise<{ found: number }> {
+    const response = await fetch(`${API_BASE}/skills/scan`, { method: 'POST' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  // Memory
+  async getMemories(options?: {
+    category?: string
+    search?: string
+    limit?: number
+  }): Promise<Array<{
+    id: string
+    key: string
+    content: string
+    source: string
+    category: string | null
+    created_at: string
+    updated_at: string
+  }>> {
+    const params = new URLSearchParams()
+    if (options?.category) params.set('category', options.category)
+    if (options?.search) params.set('search', options.search)
+    if (options?.limit) params.set('limit', options.limit.toString())
+    const response = await fetch(`${API_BASE}/memory?${params}`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async createMemory(data: {
+    key: string
+    content: string
+    source?: string
+    category?: string
+  }): Promise<{ id: string; key: string; content: string }> {
+    const response = await fetch(`${API_BASE}/memory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async updateMemory(id: string, data: {
+    content?: string
+    category?: string
+  }): Promise<void> {
+    const response = await fetch(`${API_BASE}/memory/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async deleteMemory(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/memory/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async clearMemories(): Promise<void> {
+    const response = await fetch(`${API_BASE}/memory`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
   },
 
   // Health

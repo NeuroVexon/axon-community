@@ -2,12 +2,18 @@
 Axon by NeuroVexon - Security Utilities
 """
 
+import base64
 import hashlib
+import logging
 import secrets
 from typing import Optional
 from datetime import datetime, timedelta
 
+from cryptography.fernet import Fernet
+
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def generate_session_id() -> str:
@@ -23,6 +29,38 @@ def generate_secret_key() -> str:
 def hash_string(value: str) -> str:
     """Hash a string using SHA-256"""
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+def _get_fernet() -> Fernet:
+    """Get Fernet instance derived from secret_key"""
+    # Derive a 32-byte key from the secret_key using SHA-256
+    key_bytes = hashlib.sha256(settings.secret_key.encode()).digest()
+    fernet_key = base64.urlsafe_b64encode(key_bytes)
+    return Fernet(fernet_key)
+
+
+def encrypt_value(value: str) -> str:
+    """Encrypt a value using Fernet (derived from SECRET_KEY)"""
+    if not value:
+        return ""
+    try:
+        f = _get_fernet()
+        return f.encrypt(value.encode()).decode()
+    except Exception as e:
+        logger.error(f"Encryption error: {e}")
+        return ""
+
+
+def decrypt_value(encrypted: str) -> str:
+    """Decrypt a value using Fernet (derived from SECRET_KEY)"""
+    if not encrypted:
+        return ""
+    try:
+        f = _get_fernet()
+        return f.decrypt(encrypted.encode()).decode()
+    except Exception as e:
+        logger.error(f"Decryption error: {e}")
+        return ""
 
 
 def validate_path(path: str) -> bool:
@@ -128,6 +166,16 @@ def validate_shell_command(command: str) -> tuple[bool, str]:
     if not command or not command.strip():
         return False, "Empty command"
 
+    # Block command chaining operators
+    dangerous_operators = ["&&", "||", ";", "|", "`", "$(", "${"]
+    for op in dangerous_operators:
+        if op in command:
+            return False, f"Command chaining not allowed: '{op}'"
+
+    # Block redirects to sensitive locations
+    if ">" in command and not command.strip().endswith(">"):
+        return False, "Output redirection not allowed"
+
     # Get the base command (first word)
     parts = command.strip().split()
     base_cmd = parts[0].lower()
@@ -139,12 +187,12 @@ def validate_shell_command(command: str) -> tuple[bool, str]:
     if command.lower() in whitelist:
         return True, ""
 
-    # Check base command match
+    # Check base command match (only first word)
     whitelist_bases = [cmd.split()[0] for cmd in whitelist]
     if base_cmd in whitelist_bases:
         return True, ""
 
-    return False, f"Command '{base_cmd}' not in whitelist"
+    return False, f"Command '{base_cmd}' not in whitelist. Allowed: {', '.join(settings.shell_whitelist[:5])}"
 
 
 def sanitize_filename(filename: str) -> str:

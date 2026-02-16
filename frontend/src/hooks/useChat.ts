@@ -9,7 +9,10 @@ export function useChat(
 ) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [pendingApproval, setPendingApproval] = useState<ToolApprovalRequest | null>(null)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState<
+    (ToolApprovalRequest & { approval_id?: string }) | null
+  >(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId)
 
   const sendMessage = useCallback(async (content: string) => {
@@ -22,134 +25,236 @@ export function useChat(
     }
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
+    setIsStreaming(true)
+
+    // Placeholder for streaming assistant response
+    const assistantId = `assistant-${Date.now()}`
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }])
 
     try {
-      const response = await api.sendMessage(content, currentSessionId || undefined)
+      await api.streamAgentMessage(
+        content,
+        (event) => {
+          switch (event.type) {
+            case 'text':
+              // Append streaming text to assistant message
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantId
+                  ? { ...msg, content: msg.content + (event.content || '') }
+                  : msg
+              ))
+              break
 
-      // Update session ID if new
-      if (response.session_id && response.session_id !== currentSessionId) {
-        setCurrentSessionId(response.session_id)
-        onSessionChange(response.session_id)
-      }
+            case 'tool_request':
+              // Show tool request in chat
+              setMessages(prev => [...prev, {
+                id: `tool-${Date.now()}-${event.tool}`,
+                role: 'tool' as const,
+                content: '',
+                timestamp: new Date(),
+                toolInfo: {
+                  name: event.tool || '',
+                  status: 'pending' as const,
+                },
+              }])
+              // Open approval modal
+              setPendingApproval({
+                tool: event.tool || '',
+                params: event.params || {},
+                description: event.description || `Tool ${event.tool} moechte ausgefuehrt werden`,
+                risk_level: (event.risk_level as 'low' | 'medium' | 'high' | 'critical') || 'medium',
+                approval_id: event.approval_id,
+              })
+              break
 
-      // Handle tool calls
-      if (response.tool_calls && response.tool_calls.length > 0) {
-        for (const toolCall of response.tool_calls) {
-          // Show tool request in messages
-          const toolMessage: Message = {
-            id: `tool-${Date.now()}-${toolCall.name}`,
-            role: 'tool',
-            content: '',
-            timestamp: new Date(),
-            toolInfo: {
-              name: toolCall.name,
-              status: 'pending',
-            },
+            case 'tool_result':
+              // Update tool message with result
+              setMessages(prev => prev.map(msg => {
+                if (msg.role === 'tool' && msg.toolInfo?.name === event.tool && msg.toolInfo?.status === 'pending') {
+                  return {
+                    ...msg,
+                    content: typeof event.result === 'string' ? event.result : JSON.stringify(event.result),
+                    toolInfo: {
+                      ...msg.toolInfo,
+                      status: 'executed' as const,
+                      result: typeof event.result === 'string' ? event.result : JSON.stringify(event.result),
+                      executionTimeMs: event.execution_time_ms,
+                    },
+                  }
+                }
+                return msg
+              }))
+              break
+
+            case 'tool_rejected':
+              // Update tool message status
+              setMessages(prev => prev.map(msg => {
+                if (msg.role === 'tool' && msg.toolInfo?.name === event.tool && msg.toolInfo?.status === 'pending') {
+                  return {
+                    ...msg,
+                    toolInfo: { ...msg.toolInfo, status: 'rejected' as const },
+                  }
+                }
+                return msg
+              }))
+              break
+
+            case 'tool_blocked':
+              setMessages(prev => prev.map(msg => {
+                if (msg.role === 'tool' && msg.toolInfo?.name === event.tool && msg.toolInfo?.status === 'pending') {
+                  return {
+                    ...msg,
+                    toolInfo: { ...msg.toolInfo, status: 'rejected' as const },
+                  }
+                }
+                return msg
+              }))
+              break
+
+            case 'tool_error':
+              setMessages(prev => prev.map(msg => {
+                if (msg.role === 'tool' && msg.toolInfo?.name === event.tool) {
+                  return {
+                    ...msg,
+                    toolInfo: {
+                      ...msg.toolInfo,
+                      name: msg.toolInfo?.name || event.tool || '',
+                      status: 'failed' as const,
+                      error: event.error,
+                    },
+                  }
+                }
+                return msg
+              }))
+              break
+
+            case 'error':
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantId
+                  ? { ...msg, content: msg.content || `Fehler: ${event.message || 'Unbekannter Fehler'}` }
+                  : msg
+              ))
+              break
+
+            case 'done':
+              if (event.session_id) {
+                setCurrentSessionId(event.session_id)
+                onSessionChange(event.session_id)
+              }
+              break
           }
-          setMessages(prev => [...prev, toolMessage])
-
-          // Request approval
-          setPendingApproval({
-            tool: toolCall.name,
-            params: toolCall.parameters,
-            description: `Tool ${toolCall.name} möchte ausgeführt werden`,
-            risk_level: 'medium', // Would come from backend
-          })
-        }
-      } else if (response.message) {
-        // Add assistant message
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: response.message,
-          timestamp: new Date(),
-        }
-        setMessages(prev => [...prev, assistantMessage])
-      }
+        },
+        currentSessionId || undefined
+      )
     } catch (error) {
       console.error('Failed to send message:', error)
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: 'Fehler beim Senden der Nachricht. Bitte versuche es erneut.',
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantId
+          ? { ...msg, content: 'Fehler beim Senden der Nachricht. Bitte versuche es erneut.' }
+          : msg
+      ))
     }
 
+    // Remove empty assistant message if no text was generated
+    setMessages(prev => prev.filter(msg => msg.id !== assistantId || msg.content.length > 0))
+
     setIsLoading(false)
+    setIsStreaming(false)
   }, [currentSessionId, onSessionChange])
 
   const approveToolCall = useCallback(async (scope: 'once' | 'session') => {
-    if (!pendingApproval || !currentSessionId) return
+    if (!pendingApproval?.approval_id) return
 
     try {
-      await api.approveTool(
-        currentSessionId,
-        pendingApproval.tool,
-        pendingApproval.params,
-        scope
-      )
+      await api.approveAgentTool(pendingApproval.approval_id, scope)
 
-      // Update tool message status
+      // Update tool message status to approved
       setMessages(prev => prev.map(msg => {
         if (msg.role === 'tool' && msg.toolInfo?.name === pendingApproval.tool && msg.toolInfo?.status === 'pending') {
           return {
             ...msg,
-            toolInfo: {
-              ...msg.toolInfo,
-              status: 'approved',
-            },
+            toolInfo: { ...msg.toolInfo, status: 'approved' as const },
           }
         }
         return msg
       }))
-
-      // In a real implementation, this would trigger tool execution
-      // and then update the message with the result
-
     } catch (error) {
       console.error('Failed to approve tool:', error)
     }
 
     setPendingApproval(null)
-  }, [pendingApproval, currentSessionId])
+  }, [pendingApproval])
 
-  const rejectToolCall = useCallback(() => {
-    if (!pendingApproval) return
+  const rejectToolCall = useCallback(async () => {
+    if (!pendingApproval?.approval_id) {
+      setPendingApproval(null)
+      return
+    }
+
+    try {
+      await api.approveAgentTool(pendingApproval.approval_id, 'never')
+    } catch (error) {
+      console.error('Failed to reject tool:', error)
+    }
 
     // Update tool message status
     setMessages(prev => prev.map(msg => {
       if (msg.role === 'tool' && msg.toolInfo?.name === pendingApproval.tool && msg.toolInfo?.status === 'pending') {
         return {
           ...msg,
-          toolInfo: {
-            ...msg.toolInfo,
-            status: 'rejected',
-          },
+          toolInfo: { ...msg.toolInfo, status: 'rejected' as const },
         }
       }
       return msg
     }))
 
-    // Add rejection message
-    const rejectMessage: Message = {
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      content: `Tool "${pendingApproval.tool}" wurde abgelehnt.`,
-      timestamp: new Date(),
-    }
-    setMessages(prev => [...prev, rejectMessage])
-
     setPendingApproval(null)
   }, [pendingApproval])
+
+  const loadConversation = useCallback(async (conversationId: string) => {
+    try {
+      const data = await api.getConversation(conversationId)
+      setCurrentSessionId(conversationId)
+
+      const loadedMessages: Message[] = (data.messages as Array<{
+        id: string
+        role: string
+        content: string
+        created_at: string
+      }>).map(m => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        timestamp: new Date(m.created_at),
+      }))
+
+      setMessages(loadedMessages)
+    } catch (error) {
+      console.error('Failed to load conversation:', error)
+    }
+  }, [])
+
+  const clearChat = useCallback(() => {
+    setMessages([])
+    setCurrentSessionId(null)
+    setPendingApproval(null)
+  }, [])
 
   return {
     messages,
     isLoading,
+    isStreaming,
     pendingApproval,
+    currentSessionId,
     sendMessage,
     approveToolCall,
     rejectToolCall,
+    loadConversation,
+    clearChat,
   }
 }

@@ -10,6 +10,7 @@ from typing import Any
 import logging
 
 from core.config import settings
+from core.security import validate_path, validate_url, validate_shell_command, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class ToolExecutionError(Exception):
     pass
 
 
-async def execute_tool(tool_name: str, params: dict) -> Any:
+async def execute_tool(tool_name: str, params: dict, db_session=None) -> Any:
     """Execute a tool and return the result"""
     handlers = {
         "file_read": handle_file_read,
@@ -28,8 +29,15 @@ async def execute_tool(tool_name: str, params: dict) -> Any:
         "web_fetch": handle_web_fetch,
         "web_search": handle_web_search,
         "shell_execute": handle_shell_execute,
-        "code_execute": handle_code_execute,
+        "memory_save": handle_memory_save,
+        "memory_search": handle_memory_search,
+        "memory_delete": handle_memory_delete,
+        # code_execute: Entfernt in v1.0 — Docker-Sandbox geplant für v1.1
     }
+
+    # Memory tools need db_session
+    if tool_name.startswith("memory_") and db_session:
+        params["_db_session"] = db_session
 
     handler = handlers.get(tool_name)
     if not handler:
@@ -46,11 +54,9 @@ async def handle_file_read(params: dict) -> str:
     if not path:
         raise ToolExecutionError("Missing 'path' parameter")
 
-    # Security: Block system files
-    blocked_paths = ["/etc/passwd", "/etc/shadow", "C:\\Windows\\System32"]
-    for blocked in blocked_paths:
-        if path.startswith(blocked):
-            raise ToolExecutionError(f"Access denied: {path}")
+    # Security: Validate path using central security module
+    if not validate_path(path):
+        raise ToolExecutionError(f"Access denied: {path}")
 
     try:
         # Check file size
@@ -81,8 +87,8 @@ async def handle_file_write(params: dict) -> str:
     outputs_dir = Path(settings.outputs_dir).resolve()
     outputs_dir.mkdir(parents=True, exist_ok=True)
 
-    # Sanitize filename
-    safe_filename = Path(filename).name  # Remove any path components
+    # Sanitize filename using central security module
+    safe_filename = sanitize_filename(filename)
     output_path = outputs_dir / safe_filename
 
     try:
@@ -97,6 +103,10 @@ async def handle_file_list(params: dict) -> list[dict]:
     """List files in a directory"""
     path = params.get("path", ".")
     recursive = params.get("recursive", False)
+
+    # Security: Validate path
+    if not validate_path(path):
+        raise ToolExecutionError(f"Access denied: {path}")
 
     try:
         path_obj = Path(path)
@@ -136,11 +146,9 @@ async def handle_web_fetch(params: dict) -> str:
     if not url:
         raise ToolExecutionError("Missing 'url' parameter")
 
-    # Security: Block local URLs
-    blocked_hosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254."]
-    for blocked in blocked_hosts:
-        if blocked in url:
-            raise ToolExecutionError(f"Access denied: {url}")
+    # Security: Validate URL using central security module
+    if not validate_url(url):
+        raise ToolExecutionError(f"Access denied: {url}")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -184,18 +192,10 @@ async def handle_shell_execute(params: dict) -> str:
     if not command:
         raise ToolExecutionError("Missing 'command' parameter")
 
-    # Check whitelist
-    cmd_base = command.split()[0] if command.split() else ""
-    is_whitelisted = any(
-        command.startswith(allowed) or cmd_base == allowed.split()[0]
-        for allowed in settings.shell_whitelist
-    )
-
-    if not is_whitelisted:
-        raise ToolExecutionError(
-            f"Command not in whitelist: {cmd_base}. "
-            f"Allowed: {', '.join(settings.shell_whitelist[:5])}..."
-        )
+    # Security: Validate command using central security module
+    is_valid, error_msg = validate_shell_command(command)
+    if not is_valid:
+        raise ToolExecutionError(error_msg)
 
     try:
         process = await asyncio.create_subprocess_shell(
@@ -219,46 +219,74 @@ async def handle_shell_execute(params: dict) -> str:
         raise ToolExecutionError(f"Error executing command: {e}")
 
 
-async def handle_code_execute(params: dict) -> str:
-    """Execute Python code in a sandbox"""
-    code = params.get("code")
+    # code_execute: Entfernt in v1.0 — RestrictedPython ist keine sichere Sandbox.
+    # Docker-basierte Sandbox geplant für v1.1
 
-    if not code:
-        raise ToolExecutionError("Missing 'code' parameter")
 
-    try:
-        # Use RestrictedPython for sandboxing
-        from RestrictedPython import compile_restricted, safe_globals
-        from RestrictedPython.Eval import default_guarded_getiter
-        from RestrictedPython.Guards import guarded_iter_unpack_sequence, safer_getattr
+async def handle_memory_save(params: dict) -> str:
+    """Save a fact to persistent memory"""
+    from agent.memory import MemoryManager
 
-        # Compile code
-        byte_code = compile_restricted(code, "<inline>", "exec")
-        if byte_code.errors:
-            raise ToolExecutionError(f"Compilation errors: {byte_code.errors}")
+    key = params.get("key")
+    content = params.get("content")
+    category = params.get("category")
+    db_session = params.pop("_db_session", None)
 
-        # Restricted globals
-        restricted_globals = safe_globals.copy()
-        restricted_globals["_getiter_"] = default_guarded_getiter
-        restricted_globals["_iter_unpack_sequence_"] = guarded_iter_unpack_sequence
-        restricted_globals["_getattr_"] = safer_getattr
+    if not key or not content:
+        raise ToolExecutionError("Missing 'key' or 'content' parameter")
 
-        # Capture output
-        import io
-        import sys
-        output = io.StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = output
+    if not db_session:
+        raise ToolExecutionError("Memory tools require a database session")
 
-        # Execute with timeout
-        try:
-            exec(byte_code, restricted_globals)
-        finally:
-            sys.stdout = old_stdout
+    manager = MemoryManager(db_session)
+    memory = await manager.add(key=key, content=content, source="agent", category=category)
+    await db_session.commit()
+    return f"Gespeichert: '{key}' — {content[:100]}"
 
-        return output.getvalue() or "(no output)"
 
-    except ImportError:
-        raise ToolExecutionError("RestrictedPython package not installed")
-    except Exception as e:
-        raise ToolExecutionError(f"Error executing code: {e}")
+async def handle_memory_search(params: dict) -> str:
+    """Search persistent memory"""
+    from agent.memory import MemoryManager
+
+    query = params.get("query")
+    db_session = params.pop("_db_session", None)
+
+    if not query:
+        raise ToolExecutionError("Missing 'query' parameter")
+
+    if not db_session:
+        raise ToolExecutionError("Memory tools require a database session")
+
+    manager = MemoryManager(db_session)
+    results = await manager.search(query, limit=10)
+
+    if not results:
+        return "Keine Erinnerungen gefunden."
+
+    lines = []
+    for mem in results:
+        cat = f" [{mem.category}]" if mem.category else ""
+        lines.append(f"- {mem.key}{cat}: {mem.content}")
+    return "\n".join(lines)
+
+
+async def handle_memory_delete(params: dict) -> str:
+    """Delete a memory entry by key"""
+    from agent.memory import MemoryManager
+
+    key = params.get("key")
+    db_session = params.pop("_db_session", None)
+
+    if not key:
+        raise ToolExecutionError("Missing 'key' parameter")
+
+    if not db_session:
+        raise ToolExecutionError("Memory tools require a database session")
+
+    manager = MemoryManager(db_session)
+    deleted = await manager.remove_by_key(key)
+    await db_session.commit()
+
+    if deleted:
+        return f"Erinnerung '{key}' gelöscht."
+    return f"Keine Erinnerung mit Key '{key}' gefunden."

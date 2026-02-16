@@ -104,16 +104,43 @@ class ToolRegistry:
             risk_level=RiskLevel.HIGH
         ))
 
-        # Code Execution (Sandboxed)
+        # Memory Tools
         self.register(ToolDefinition(
-            name="code_execute",
-            description="Execute Python code in a sandbox",
-            description_de="Führt Python-Code in einer Sandbox aus",
+            name="memory_save",
+            description="Save a fact to persistent memory for future conversations",
+            description_de="Speichert einen Fakt im Langzeitgedächtnis",
             parameters={
-                "code": {"type": "string", "description": "Python code to execute", "required": True}
+                "key": {"type": "string", "description": "Short topic/title for the memory", "required": True},
+                "content": {"type": "string", "description": "The fact or information to remember", "required": True},
+                "category": {"type": "string", "description": "Optional category (e.g. 'preference', 'fact', 'project')"}
             },
-            risk_level=RiskLevel.HIGH
+            risk_level=RiskLevel.LOW,
+            requires_approval=False
         ))
+
+        self.register(ToolDefinition(
+            name="memory_search",
+            description="Search persistent memory for relevant facts",
+            description_de="Durchsucht das Langzeitgedächtnis nach relevanten Fakten",
+            parameters={
+                "query": {"type": "string", "description": "Search query", "required": True}
+            },
+            risk_level=RiskLevel.LOW,
+            requires_approval=False
+        ))
+
+        self.register(ToolDefinition(
+            name="memory_delete",
+            description="Delete a memory entry by key",
+            description_de="Löscht einen Eintrag aus dem Langzeitgedächtnis",
+            parameters={
+                "key": {"type": "string", "description": "The key of the memory to delete", "required": True}
+            },
+            risk_level=RiskLevel.LOW,
+            requires_approval=False
+        ))
+
+        # code_execute: Entfernt in v1.0 — Docker-Sandbox geplant für v1.1
 
     def register(self, tool: ToolDefinition):
         """Register a tool"""

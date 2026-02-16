@@ -7,9 +7,10 @@ import { useChat } from '../../hooks/useChat'
 interface ChatContainerProps {
   sessionId: string | null
   onSessionChange: (id: string) => void
+  loadConversationId?: string | null
 }
 
-export default function ChatContainer({ sessionId, onSessionChange }: ChatContainerProps) {
+export default function ChatContainer({ sessionId, onSessionChange, loadConversationId }: ChatContainerProps) {
   const {
     messages,
     isLoading,
@@ -17,9 +18,17 @@ export default function ChatContainer({ sessionId, onSessionChange }: ChatContai
     sendMessage,
     approveToolCall,
     rejectToolCall,
+    loadConversation,
   } = useChat(sessionId, onSessionChange)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Load conversation from sidebar click
+  useEffect(() => {
+    if (loadConversationId) {
+      loadConversation(loadConversationId)
+    }
+  }, [loadConversationId, loadConversation])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -50,10 +59,10 @@ export default function ChatContainer({ sessionId, onSessionChange }: ChatContai
               Dein KI-Assistent mit voller Kontrolle. Jede Aktion wird dir zur Bestätigung vorgelegt.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-              <ExamplePrompt text="Lies die Datei config.json" />
-              <ExamplePrompt text="Suche im Web nach Python Tutorials" />
-              <ExamplePrompt text="Liste alle Dateien im aktuellen Ordner" />
-              <ExamplePrompt text="Führe den Befehl 'ls -la' aus" />
+              <ExamplePrompt text="Lies die Datei config.json" onClick={sendMessage} />
+              <ExamplePrompt text="Suche im Web nach Python Tutorials" onClick={sendMessage} />
+              <ExamplePrompt text="Liste alle Dateien im aktuellen Ordner" onClick={sendMessage} />
+              <ExamplePrompt text="Führe den Befehl 'ls -la' aus" onClick={sendMessage} />
             </div>
           </div>
         ) : (
@@ -82,10 +91,13 @@ export default function ChatContainer({ sessionId, onSessionChange }: ChatContai
   )
 }
 
-function ExamplePrompt({ text }: { text: string }) {
+function ExamplePrompt({ text, onClick }: { text: string; onClick: (text: string) => void }) {
   return (
-    <button className="p-4 bg-nv-black-lighter border border-nv-gray-light rounded-lg text-left
-                       text-sm text-gray-400 hover:border-nv-accent hover:text-white transition-all">
+    <button
+      onClick={() => onClick(text)}
+      className="p-4 bg-nv-black-lighter border border-nv-gray-light rounded-lg text-left
+                 text-sm text-gray-400 hover:border-nv-accent hover:text-white transition-all"
+    >
       {text}
     </button>
   )

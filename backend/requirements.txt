@@ -22,12 +22,14 @@ anthropic==0.18.0
 # Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+cryptography==42.0.0
 
 # Utilities
 python-dateutil==2.8.2
 
-# Code Execution Sandbox
-RestrictedPython==7.0
-
 # Web Search
 duckduckgo-search==4.2
+
+# Messenger Integrations (optional)
+python-telegram-bot==21.0
+discord.py==2.3.2

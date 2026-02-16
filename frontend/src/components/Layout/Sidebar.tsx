@@ -1,29 +1,79 @@
+import { useState, useEffect } from 'react'
 import {
   MessageSquare,
   ClipboardList,
   Settings,
   Plus,
-  Bird
+  Bird,
+  Brain,
+  Puzzle,
+  Trash2
 } from 'lucide-react'
 import clsx from 'clsx'
+import { api } from '../../services/api'
+
+interface Conversation {
+  id: string
+  title: string | null
+  created_at: string
+  updated_at: string
+}
 
 interface SidebarProps {
-  currentView: 'chat' | 'audit' | 'settings'
-  onViewChange: (view: 'chat' | 'audit' | 'settings') => void
+  currentView: 'chat' | 'audit' | 'memory' | 'skills' | 'settings'
+  onViewChange: (view: 'chat' | 'audit' | 'memory' | 'skills' | 'settings') => void
   currentSession: string | null
   onNewChat: () => void
+  onSelectConversation?: (id: string) => void
 }
 
 export default function Sidebar({
   currentView,
   onViewChange,
-  onNewChat
+  currentSession,
+  onNewChat,
+  onSelectConversation
 }: SidebarProps) {
+  const [conversations, setConversations] = useState<Conversation[]>([])
+
   const navItems = [
     { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
+    { id: 'memory' as const, label: 'Gedächtnis', icon: Brain },
+    { id: 'skills' as const, label: 'Skills', icon: Puzzle },
     { id: 'audit' as const, label: 'Audit Log', icon: ClipboardList },
     { id: 'settings' as const, label: 'Einstellungen', icon: Settings },
   ]
+
+  useEffect(() => {
+    loadConversations()
+  }, [currentSession])
+
+  const loadConversations = async () => {
+    try {
+      const data = await api.getConversations(20)
+      setConversations(data)
+    } catch {
+      // Silently fail - sidebar still works
+    }
+  }
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    try {
+      await api.deleteConversation(id)
+      setConversations(prev => prev.filter(c => c.id !== id))
+      if (currentSession === id) {
+        onNewChat()
+      }
+    } catch {
+      // Silently fail
+    }
+  }
+
+  const handleSelect = (id: string) => {
+    onViewChange('chat')
+    onSelectConversation?.(id)
+  }
 
   return (
     <aside className="w-64 bg-nv-black border-r border-nv-gray-light h-screen flex flex-col">
@@ -43,7 +93,7 @@ export default function Sidebar({
       {/* New Chat Button */}
       <div className="p-4">
         <button
-          onClick={onNewChat}
+          onClick={() => { onNewChat(); onViewChange('chat') }}
           className="w-full px-4 py-3 bg-nv-accent text-nv-black font-semibold rounded-lg
                      hover:bg-opacity-90 shadow-nv-glow transition-all flex items-center justify-center gap-2"
         >
@@ -53,7 +103,7 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="px-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = currentView === item.id
@@ -76,11 +126,44 @@ export default function Sidebar({
         })}
       </nav>
 
+      {/* Conversation History */}
+      {conversations.length > 0 && (
+        <div className="flex-1 overflow-y-auto px-4 mt-4 border-t border-nv-gray-light pt-4">
+          <p className="text-xs text-gray-600 uppercase tracking-wider mb-2 px-2">
+            Verlauf
+          </p>
+          <div className="space-y-1">
+            {conversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => handleSelect(conv.id)}
+                className={clsx(
+                  'w-full px-3 py-2 rounded-lg text-left text-sm transition-all group flex items-center justify-between',
+                  currentSession === conv.id
+                    ? 'bg-nv-accent/10 text-nv-accent border border-nv-accent/30'
+                    : 'text-gray-400 hover:text-white hover:bg-nv-black-lighter'
+                )}
+              >
+                <span className="truncate flex-1">
+                  {conv.title || 'Unbenannt'}
+                </span>
+                <button
+                  onClick={(e) => handleDelete(e, conv.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="p-4 border-t border-nv-gray-light">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <div className="w-2 h-2 bg-nv-success rounded-full animate-pulse" />
-          <span>Axon v1.0.0</span>
+          <span>Axon v1.1.0</span>
         </div>
         <p className="text-xs text-gray-600 mt-1">
           Agentic AI - ohne Kontrollverlust
