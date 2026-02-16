@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Brain, Plus, Search, Trash2, Tag, Edit3, Save, X, Loader2 } from 'lucide-react'
-import clsx from 'clsx'
 import { api } from '../../services/api'
 
 interface MemoryEntry {

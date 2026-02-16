@@ -227,6 +227,9 @@ async def agent_message(
     """
     Send a message through the Agent Orchestrator (SSE stream).
     This is the primary endpoint — uses tool approval system.
+
+    DB session is released before streaming starts to avoid SQLite locks.
+    The generator uses its own session for saving results.
     """
     # Load settings and update router
     db_settings = await load_settings_to_router(db)
@@ -280,15 +283,16 @@ async def agent_message(
 
     session_id = conversation.id
 
+    # Capture data we need, then release the initial DB session
+    # The streaming generator will use its own sessions
+    await db.close()
+
     async def on_approval_needed(request_data: dict) -> Optional[PermissionScope]:
         """Callback: pause stream and wait for frontend approval via /tools/approve"""
-        approval_id = permission_manager.create_approval_request(
-            session_id=session_id,
-            tool=request_data["tool"],
-            params=request_data["params"],
-            description=request_data["description"],
-            risk_level=request_data["risk_level"]
-        )
+        approval_id = request_data.get("approval_id")
+        if not approval_id:
+            return None
+
         # Create an event to wait on
         event = asyncio.Event()
         result_holder = {"decision": None}
@@ -307,53 +311,51 @@ async def agent_message(
             _approval_events.pop(approval_id, None)
 
     async def generate():
+        from db.database import async_session
+
         try:
             provider = llm_router.get_provider(LLMProvider(current_provider))
         except ValueError:
             yield f"data: {json.dumps({'type': 'error', 'message': f'Invalid LLM provider: {current_provider}'})}\n\n"
             return
 
-        orchestrator = AgentOrchestrator(
-            llm_provider=provider,
-            db_session=db
-        )
-
-        full_response = ""
-
-        try:
-            async for event in orchestrator.process_message(
-                session_id=session_id,
-                messages=messages,
-                on_approval_needed=on_approval_needed
-            ):
-                event_type = event.get("type")
-
-                if event_type == "text":
-                    full_response += event.get("content", "")
-
-                if event_type == "tool_request":
-                    # Include approval_id so frontend can approve via /tools/approve/{id}
-                    pending = list(_approval_events.keys())
-                    if pending:
-                        event["approval_id"] = pending[-1]
-
-                yield f"data: {json.dumps(event)}\n\n"
-
-                if event_type == "done":
-                    break
-        except Exception as e:
-            logger.error(f"Agent error: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-
-        # Save assistant response
-        if full_response:
-            assistant_message = Message(
-                conversation_id=session_id,
-                role="assistant",
-                content=full_response
+        # Use a fresh DB session for the streaming phase (audit logging, memory tools)
+        async with async_session() as stream_db:
+            orchestrator = AgentOrchestrator(
+                llm_provider=provider,
+                db_session=stream_db
             )
-            db.add(assistant_message)
-            await db.commit()
+
+            full_response = ""
+
+            try:
+                async for event in orchestrator.process_message(
+                    session_id=session_id,
+                    messages=messages,
+                    on_approval_needed=on_approval_needed
+                ):
+                    event_type = event.get("type")
+
+                    if event_type == "text":
+                        full_response += event.get("content", "")
+
+                    yield f"data: {json.dumps(event)}\n\n"
+
+                    if event_type == "done":
+                        break
+            except Exception as e:
+                logger.error(f"Agent error: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+            # Save assistant response with the stream session
+            if full_response:
+                assistant_message = Message(
+                    conversation_id=session_id,
+                    role="assistant",
+                    content=full_response
+                )
+                stream_db.add(assistant_message)
+                await stream_db.commit()
 
         yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
 

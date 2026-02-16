@@ -101,14 +101,47 @@ class AgentOrchestrator:
                     session_id, tool_name, tool_params
                 )
 
-                # Yield tool request to UI
-                yield {
-                    "type": "tool_request",
-                    "tool": tool_name,
-                    "params": tool_params,
-                    "description": tool_def.description_de,
-                    "risk_level": tool_def.risk_level.value
-                }
+                # Auto-approve tools that don't require approval (e.g. memory tools)
+                if not tool_def.requires_approval:
+                    logger.info(f"Auto-approving {tool_name} (requires_approval=False)")
+                    # Skip approval flow, go straight to execution
+                    start_time = time.time()
+                    try:
+                        result = await execute_tool(tool_name, tool_params, db_session=self.audit.db)
+                        execution_time_ms = int((time.time() - start_time) * 1000)
+
+                        await self.audit.log_tool_execution(
+                            session_id, tool_name, tool_params,
+                            str(result), execution_time_ms
+                        )
+
+                        yield {
+                            "type": "tool_result",
+                            "tool": tool_name,
+                            "result": result,
+                            "execution_time_ms": execution_time_ms
+                        }
+
+                        messages.append(ChatMessage(
+                            role="assistant",
+                            content=f"Tool {tool_name} executed. Result: {str(result)[:500]}"
+                        ))
+
+                    except Exception as e:
+                        logger.exception(f"Error executing auto-approved {tool_name}")
+                        await self.audit.log_tool_failure(
+                            session_id, tool_name, tool_params, str(e)
+                        )
+                        yield {
+                            "type": "tool_error",
+                            "tool": tool_name,
+                            "error": str(e)
+                        }
+                        messages.append(ChatMessage(
+                            role="assistant",
+                            content=f"Tool {tool_name} failed: {str(e)}"
+                        ))
+                    continue
 
                 # Check existing permission
                 has_permission = self.permissions.check_permission(
@@ -126,23 +159,41 @@ class AgentOrchestrator:
                             "tool": tool_name,
                             "message": "Tool wurde vom Benutzer blockiert"
                         }
-                        # Add to messages so LLM knows
                         messages.append(ChatMessage(
                             role="assistant",
                             content=f"Tool {tool_name} wurde blockiert."
                         ))
                         continue
 
-                    # Request approval
+                    # Create approval request FIRST so we have an ID
+                    approval_id = self.permissions.create_approval_request(
+                        session_id=session_id,
+                        tool=tool_name,
+                        params=tool_params,
+                        description=tool_def.description_de,
+                        risk_level=tool_def.risk_level.value
+                    )
+
+                    # Yield tool request with approval_id to UI
+                    yield {
+                        "type": "tool_request",
+                        "tool": tool_name,
+                        "params": tool_params,
+                        "description": tool_def.description_de,
+                        "risk_level": tool_def.risk_level.value,
+                        "approval_id": approval_id
+                    }
+
+                    # Wait for approval decision
                     decision = await on_approval_needed({
                         "tool": tool_name,
                         "params": tool_params,
                         "description": tool_def.description_de,
-                        "risk_level": tool_def.risk_level.value
+                        "risk_level": tool_def.risk_level.value,
+                        "approval_id": approval_id
                     })
 
                     if decision is None:
-                        # Rejected
                         await self.audit.log_tool_rejection(
                             session_id, tool_name, tool_params, "rejected"
                         )

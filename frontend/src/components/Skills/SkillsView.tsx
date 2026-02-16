@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Puzzle, Shield, ShieldCheck, ShieldX, ToggleLeft, ToggleRight, RefreshCw, Trash2, Loader2, AlertTriangle } from 'lucide-react'
+import { Puzzle, Shield, ShieldCheck, ToggleLeft, ToggleRight, RefreshCw, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../services/api'
 
