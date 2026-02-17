@@ -23,6 +23,8 @@ pytest tests/ -v
 | `test_agents.py` | 25 | AgentManager CRUD, Defaults, Permissions, Risk-Levels |
 | `test_embeddings.py` | 14 | Cosine Similarity, EmbeddingProvider Verhalten |
 | `test_rate_limiter.py` | 7 | Rate Limiting: Limits, Fenster, Reset |
+| `test_tool_handlers.py` | 36 | Alle Tool-Handler: Security, Parameter, Fehlerbehandlung |
+| `test_orchestrator.py` | 28 | Agent-Loop: Approval-Flow, Auto-Approve, Permissions, Iterations, Audit |
 
 ### Integration Tests (Server-Dependencies erforderlich)
 
@@ -33,7 +35,7 @@ pytest tests/ -v
 
 Integration Tests werden automatisch uebersprungen wenn Dependencies fehlen (z.B. `apscheduler`).
 
-**Gesamt: 154 Tests** (127 Unit + 27 Integration)
+**Gesamt: 230 Tests** (203 Unit + 27 Integration)
 
 ## Architektur
 
@@ -114,6 +116,26 @@ def test_list_agents(self, client):
 - Verschiedene Keys sind unabhaengig
 - Fenster-Ablauf: alte Requests zaehlen nicht
 - Reset setzt Zaehler zurueck
+
+### Tool Handlers
+
+- **file_read**: Existierende Dateien, fehlende Parameter, Path-Traversal, sensitive Dateien blockiert
+- **file_write**: Erstellen, korrekter Inhalt, fehlende Parameter, Path-Traversal sanitized
+- **file_list**: Directory-Listing, Typ-Erkennung, blockierte Pfade
+- **web_fetch**: SSRF-Schutz (localhost, interne IPs, AWS IMDS, Docker, file://)
+- **shell_execute**: Command-Injection (&&, ||, ;, |, Backticks, $()-Substitution), Whitelist
+- **memory_save/search/delete**: Parameter-Validierung, DB-Session-Check, CRUD
+
+### Orchestrator (Agent-Loop)
+
+- **Basic Flow**: Text-Antwort ohne Tools, leerer Content, LLM erhaelt Tool-Definitionen
+- **Auto-Approve**: Tools mit `requires_approval=False` werden automatisch ausgefuehrt
+- **Approval Flow**: Genehmigung, Ablehnung, `approval_id` und `risk_level` im Request
+- **Session Permissions**: Zweiter Call ueberspringt Approval nach Session-Genehmigung
+- **Agent Permissions**: Gesperrte Tools, Agent-Auto-Approve, Default-Agent erlaubt alles
+- **Iterationen**: Max-Iterations-Warning, Custom Limits, Multi-Tool-Responses
+- **Fehlerbehandlung**: ToolExecutionError, unerwartete Exceptions
+- **Audit-Logging**: Tool-Requests, Ausfuehrungen, Ablehnungen, Fehler werden geloggt
 
 ### API Endpoints
 
