@@ -11,6 +11,7 @@ import logging
 
 from core.config import settings
 from core.security import validate_path, validate_url, validate_shell_command, sanitize_filename
+from core.i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,9 @@ async def execute_tool(tool_name: str, params: dict, db_session=None) -> Any:
         "memory_save": handle_memory_save,
         "memory_search": handle_memory_search,
         "memory_delete": handle_memory_delete,
-        # code_execute: Entfernt in v1.0 — Docker-Sandbox geplant für v1.1
+        "email_inbox": handle_email_inbox,
+        "email_send": handle_email_send,
+        "code_execute": handle_code_execute,
     }
 
     # Memory tools need db_session
@@ -266,10 +269,6 @@ async def handle_shell_execute(params: dict) -> str:
         raise ToolExecutionError(f"Error executing command: {e}")
 
 
-    # code_execute: Entfernt in v1.0 — RestrictedPython ist keine sichere Sandbox.
-    # Docker-basierte Sandbox geplant für v1.1
-
-
 async def handle_memory_save(params: dict) -> str:
     """Save a fact to persistent memory"""
     from agent.memory import MemoryManager
@@ -291,7 +290,7 @@ async def handle_memory_save(params: dict) -> str:
     manager = MemoryManager(db_session)
     memory = await manager.add(key=key, content=content, source="agent", category=category)
     await db_session.commit()
-    return f"Gespeichert: '{key}' — {content[:100]}"
+    return t("tool.memory_saved", key=key, content=content[:100])
 
 
 async def handle_memory_search(params: dict) -> str:
@@ -311,7 +310,7 @@ async def handle_memory_search(params: dict) -> str:
     results = await manager.search(query, limit=10)
 
     if not results:
-        return "Keine Erinnerungen gefunden."
+        return t("tool.memory_not_found")
 
     lines = []
     for mem in results:
@@ -338,5 +337,31 @@ async def handle_memory_delete(params: dict) -> str:
     await db_session.commit()
 
     if deleted:
-        return f"Erinnerung '{key}' gelöscht."
-    return f"Keine Erinnerung mit Key '{key}' gefunden."
+        return t("tool.memory_deleted", key=key)
+    return t("tool.memory_key_not_found", key=key)
+
+
+async def handle_email_inbox(params: dict) -> str:
+    """Read emails from inbox (readonly)"""
+    from skills.email_inbox import execute
+    return await execute(params)
+
+
+async def handle_email_send(params: dict) -> str:
+    """Send an email via SMTP"""
+    from skills.email_send import execute
+    return await execute(params)
+
+
+async def handle_code_execute(params: dict) -> str:
+    """Execute code in Docker sandbox"""
+    from sandbox.executor import execute_code
+
+    code = params.get("code")
+    timeout = params.get("timeout", 30)
+
+    if not code:
+        raise ToolExecutionError("Missing 'code' parameter")
+
+    result = await execute_code(code, timeout=timeout)
+    return str(result)

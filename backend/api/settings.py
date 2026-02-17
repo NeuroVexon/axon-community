@@ -2,7 +2,7 @@
 Axon by NeuroVexon - Settings API Endpoints
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -14,9 +14,10 @@ from db.models import Settings
 from core.config import settings as app_settings, LLMProvider
 from core.security import encrypt_value, decrypt_value
 from llm.router import llm_router
+from core.i18n import t, set_language, get_lang_from_header
 
 # Keys that must be encrypted in the database
-ENCRYPTED_KEYS = {"anthropic_api_key", "openai_api_key"}
+ENCRYPTED_KEYS = {"anthropic_api_key", "openai_api_key", "imap_password", "smtp_password", "mcp_auth_token"}
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -30,6 +31,22 @@ class SettingsUpdate(BaseModel):
     ollama_model: Optional[str] = None
     claude_model: Optional[str] = None
     openai_model: Optional[str] = None
+    # E-Mail
+    email_enabled: Optional[str] = None
+    imap_host: Optional[str] = None
+    imap_port: Optional[str] = None
+    imap_user: Optional[str] = None
+    imap_password: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[str] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+    # MCP
+    mcp_enabled: Optional[str] = None
+    mcp_auth_token: Optional[str] = None
+    # Language
+    language: Optional[str] = None
 
 
 def mask_api_key(key: Optional[str]) -> str:
@@ -67,6 +84,19 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         "ollama_model": db_settings.get("ollama_model", app_settings.ollama_model),
         "claude_model": db_settings.get("claude_model", app_settings.claude_model),
         "openai_model": db_settings.get("openai_model", app_settings.openai_model),
+        # E-Mail
+        "email_enabled": db_settings.get("email_enabled", "false") == "true",
+        "imap_host": db_settings.get("imap_host", ""),
+        "imap_port": db_settings.get("imap_port", "993"),
+        "imap_user": db_settings.get("imap_user", ""),
+        "imap_password_set": bool(db_settings.get("imap_password", "")),
+        "smtp_host": db_settings.get("smtp_host", ""),
+        "smtp_port": db_settings.get("smtp_port", "587"),
+        "smtp_user": db_settings.get("smtp_user", ""),
+        "smtp_password_set": bool(db_settings.get("smtp_password", "")),
+        "smtp_from": db_settings.get("smtp_from", ""),
+        # Language
+        "language": db_settings.get("language", "de"),
     }
 
 
@@ -95,6 +125,22 @@ async def update_settings(
 
     await db.commit()
     return {"status": "updated", "changes": updates}
+
+
+@router.post("/email/test")
+async def test_email_connection(request: Request, db: AsyncSession = Depends(get_db)):
+    """E-Mail Verbindung testen"""
+    set_language(get_lang_from_header(request.headers.get("accept-language")))
+    from integrations.email import get_email_client_from_settings
+
+    result = await db.execute(select(Settings))
+    db_settings = {s.key: s.value for s in result.scalars().all()}
+
+    client = get_email_client_from_settings(db_settings)
+    if not client:
+        return {"imap": False, "smtp": False, "imap_error": t("settings.not_configured"), "smtp_error": t("settings.not_configured")}
+
+    return await client.test_connection()
 
 
 @router.get("/health")

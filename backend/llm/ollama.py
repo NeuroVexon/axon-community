@@ -1,3 +1,5 @@
+# Copyright 2026 NeuroVexon UG (haftungsbeschränkt)
+# SPDX-License-Identifier: Apache-2.0
 """
 Axon by NeuroVexon - Ollama LLM Provider
 """
@@ -50,8 +52,8 @@ def _parse_tool_calls_from_text(text: str, available_tools: list[dict]) -> Optio
     if fence_match:
         try:
             obj = json.loads(fence_match.group(1))
-            name = obj.get("name", "")
-            args = obj.get("arguments", {})
+            name = obj.get("name", "") or obj.get("function_name", "")
+            args = obj.get("arguments", {}) or obj.get("parameters", {})
             if name in tool_names and args:
                 logger.info(f"Parsed tool call from code fence: {name}({args})")
                 return [ToolCall(id="fallback_0", name=name, parameters=args)]
@@ -104,6 +106,11 @@ class OllamaProvider(BaseLLMProvider):
     def __init__(self):
         self.base_url = settings.ollama_base_url
         self.model = settings.ollama_model
+
+    def update_config(self, model: str = None, **kwargs):
+        """Update model at runtime from DB settings"""
+        if model:
+            self.model = model
 
     async def chat(
         self,

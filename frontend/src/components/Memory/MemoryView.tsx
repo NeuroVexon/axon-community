@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Brain, Plus, Search, Trash2, Tag, Edit3, Save, X, Loader2 } from 'lucide-react'
 import { api } from '../../services/api'
+import { useTranslation } from 'react-i18next'
 
 interface MemoryEntry {
   id: string
@@ -13,6 +14,7 @@ interface MemoryEntry {
 }
 
 export default function MemoryView() {
+  const { t } = useTranslation()
   const [memories, setMemories] = useState<MemoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -109,14 +111,14 @@ export default function MemoryView() {
           <div className="flex items-center gap-3">
             <Brain className="w-8 h-8 text-nv-accent" />
             <div>
-              <h1 className="text-2xl font-bold">Gedächtnis</h1>
+              <h1 className="text-2xl font-bold">{t('memory.title')}</h1>
               <p className="text-sm text-gray-500">
-                Persistente Fakten, die Axon sich merkt
+                {t('memory.subtitle')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>{memories.length} Einträge</span>
+            <span>{t('memory.entries', { count: memories.length })}</span>
           </div>
         </div>
 
@@ -129,7 +131,7 @@ export default function MemoryView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Gedächtnis durchsuchen..."
+              placeholder={t('memory.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-3 bg-nv-black-lighter border border-nv-gray-light rounded-lg
                          text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent"
             />
@@ -140,7 +142,7 @@ export default function MemoryView() {
                        hover:bg-opacity-90 flex items-center gap-2 shadow-nv-glow transition-all"
           >
             <Plus className="w-5 h-5" />
-            Neu
+            {t('memory.new')}
           </button>
         </div>
 
@@ -152,7 +154,7 @@ export default function MemoryView() {
               className="px-3 py-1 text-xs rounded-full bg-nv-black-lighter border border-nv-gray-light
                          text-gray-400 hover:text-white transition-all"
             >
-              Alle
+              {t('memory.all')}
             </button>
             {categories.map(cat => (
               <button
@@ -171,20 +173,20 @@ export default function MemoryView() {
         {/* Create Form */}
         {showForm && (
           <div className="mb-6 bg-nv-black-200 rounded-xl p-6 border border-nv-accent/30">
-            <h3 className="text-sm font-semibold text-nv-accent mb-4">Neue Erinnerung</h3>
+            <h3 className="text-sm font-semibold text-nv-accent mb-4">{t('memory.newMemory')}</h3>
             <div className="space-y-3">
               <input
                 type="text"
                 value={formKey}
                 onChange={(e) => setFormKey(e.target.value)}
-                placeholder="Schlüssel (z.B. 'Lieblingssprache')"
+                placeholder={t('memory.keyPlaceholder')}
                 className="w-full px-4 py-2 bg-nv-black border border-nv-gray-light rounded-lg
                            text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent"
               />
               <textarea
                 value={formContent}
                 onChange={(e) => setFormContent(e.target.value)}
-                placeholder="Inhalt (z.B. 'Der Benutzer programmiert am liebsten in Python')"
+                placeholder={t('memory.contentPlaceholder')}
                 rows={3}
                 className="w-full px-4 py-2 bg-nv-black border border-nv-gray-light rounded-lg
                            text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent resize-none"
@@ -193,7 +195,7 @@ export default function MemoryView() {
                 type="text"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                placeholder="Kategorie (optional, z.B. 'Präferenz')"
+                placeholder={t('memory.categoryPlaceholder')}
                 className="w-full px-4 py-2 bg-nv-black border border-nv-gray-light rounded-lg
                            text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent"
               />
@@ -202,7 +204,7 @@ export default function MemoryView() {
                   onClick={() => setShowForm(false)}
                   className="px-4 py-2 text-gray-400 hover:text-white transition-all"
                 >
-                  Abbrechen
+                  {t('memory.cancel')}
                 </button>
                 <button
                   onClick={handleCreate}
@@ -211,7 +213,7 @@ export default function MemoryView() {
                              hover:bg-opacity-90 disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Speichern
+                  {t('memory.save')}
                 </button>
               </div>
             </div>
@@ -229,9 +231,9 @@ export default function MemoryView() {
         {!loading && memories.length === 0 && (
           <div className="text-center py-12">
             <Brain className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-            <p className="text-gray-500">Noch keine Erinnerungen gespeichert.</p>
+            <p className="text-gray-500">{t('memory.emptyTitle')}</p>
             <p className="text-sm text-gray-600 mt-1">
-              Sage Axon etwas wie "Merk dir, dass ich Python bevorzuge" oder füge hier manuell Einträge hinzu.
+              {t('memory.emptyHint')}
             </p>
           </div>
         )}
@@ -259,7 +261,7 @@ export default function MemoryView() {
                       type="text"
                       value={formCategory}
                       onChange={(e) => setFormCategory(e.target.value)}
-                      placeholder="Kategorie"
+                      placeholder={t('memory.category')}
                       className="w-full px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg
                                  text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent"
                     />
@@ -272,7 +274,7 @@ export default function MemoryView() {
                         className="px-3 py-1 bg-nv-accent text-nv-black rounded-lg font-semibold text-sm flex items-center gap-1"
                       >
                         <Save className="w-3.5 h-3.5" />
-                        Speichern
+                        {t('memory.save')}
                       </button>
                     </div>
                   </div>
@@ -291,7 +293,7 @@ export default function MemoryView() {
                         </div>
                         <p className="text-gray-400 text-sm">{mem.content}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-                          <span>Quelle: {mem.source === 'agent' ? 'KI' : mem.source === 'user' ? 'Benutzer' : 'System'}</span>
+                          <span>{t('memory.source', { source: mem.source === 'agent' ? t('memory.sourceAgent') : mem.source === 'user' ? t('memory.sourceUser') : t('memory.sourceSystem') })}</span>
                           <span>{new Date(mem.updated_at).toLocaleDateString('de-DE')}</span>
                         </div>
                       </div>

@@ -10,11 +10,13 @@
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
+    "clsx": "^2.1.0",
+    "i18next": "^25.8.10",
+    "lucide-react": "^0.323.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.0",
-    "lucide-react": "^0.323.0",
-    "clsx": "^2.1.0"
+    "react-i18next": "^16.5.4",
+    "react-router-dom": "^6.22.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.48",

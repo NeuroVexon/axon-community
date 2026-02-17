@@ -4,6 +4,11 @@
 
 const API_BASE = '/api/v1'
 
+function getLangHeaders(): Record<string, string> {
+  const lang = localStorage.getItem('axon-language') || 'de'
+  return { 'Accept-Language': lang }
+}
+
 interface ChatResponse {
   session_id: string
   message: string
@@ -41,6 +46,27 @@ interface Settings {
   theme: string
   system_prompt?: string
   available_providers: string[]
+  // API Keys
+  anthropic_api_key_set?: boolean
+  anthropic_api_key_masked?: string
+  openai_api_key_set?: boolean
+  openai_api_key_masked?: string
+  // Models
+  ollama_model?: string
+  claude_model?: string
+  openai_model?: string
+  // E-Mail
+  email_enabled?: boolean
+  imap_host?: string
+  imap_port?: string
+  imap_user?: string
+  imap_password_set?: boolean
+  smtp_host?: string
+  smtp_port?: string
+  smtp_user?: string
+  smtp_password_set?: boolean
+  smtp_from?: string
+  language?: string
 }
 
 export const api = {
@@ -48,7 +74,7 @@ export const api = {
   async sendMessage(message: string, sessionId?: string): Promise<ChatResponse> {
     const response = await fetch(`${API_BASE}/chat/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getLangHeaders() },
       body: JSON.stringify({
         message,
         session_id: sessionId,
@@ -69,7 +95,7 @@ export const api = {
   ): Promise<void> {
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getLangHeaders() },
       body: JSON.stringify({
         message,
         session_id: sessionId,
@@ -125,15 +151,17 @@ export const api = {
       error?: string
     }) => void,
     sessionId?: string,
-    systemPrompt?: string
+    systemPrompt?: string,
+    agentId?: string
   ): Promise<void> {
     const response = await fetch(`${API_BASE}/chat/agent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getLangHeaders() },
       body: JSON.stringify({
         message,
         session_id: sessionId,
         system_prompt: systemPrompt,
+        agent_id: agentId,
       }),
     })
 
@@ -285,6 +313,17 @@ export const api = {
     }
   },
 
+  async testEmailConnection(): Promise<{
+    imap: boolean
+    smtp: boolean
+    imap_error: string | null
+    smtp_error: string | null
+  }> {
+    const response = await fetch(`${API_BASE}/settings/email/test`, { method: 'POST', headers: { ...getLangHeaders() } })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
   // Skills
   async getSkills(): Promise<Array<{
     id: string
@@ -390,6 +429,300 @@ export const api = {
 
   async clearMemories(): Promise<void> {
     const response = await fetch(`${API_BASE}/memory`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  // Scheduled Tasks
+  async getTasks(): Promise<Array<{
+    id: string
+    name: string
+    cron_expression: string
+    agent_id: string | null
+    prompt: string
+    approval_required: boolean
+    notification_channel: string
+    max_retries: number
+    last_run: string | null
+    last_result: string | null
+    next_run: string | null
+    enabled: boolean
+    created_at: string
+    updated_at: string
+  }>> {
+    const response = await fetch(`${API_BASE}/tasks`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async createTask(data: {
+    name: string
+    cron_expression: string
+    prompt: string
+    agent_id?: string
+    approval_required?: boolean
+    notification_channel?: string
+  }): Promise<{ id: string }> {
+    const response = await fetch(`${API_BASE}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async updateTask(id: string, data: Record<string, unknown>): Promise<void> {
+    const response = await fetch(`${API_BASE}/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async deleteTask(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async runTask(id: string): Promise<{ result: string }> {
+    const response = await fetch(`${API_BASE}/tasks/${id}/run`, { method: 'POST' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async toggleTask(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/tasks/${id}/toggle`, { method: 'POST' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  // Agents
+  async getAgents(): Promise<Array<{
+    id: string
+    name: string
+    description: string
+    system_prompt: string | null
+    model: string | null
+    allowed_tools: string[] | null
+    allowed_skills: string[] | null
+    risk_level_max: string
+    auto_approve_tools: string[] | null
+    is_default: boolean
+    enabled: boolean
+    created_at: string
+    updated_at: string
+  }>> {
+    const response = await fetch(`${API_BASE}/agents`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async getAgent(id: string): Promise<{
+    id: string
+    name: string
+    description: string
+    system_prompt: string | null
+    model: string | null
+    allowed_tools: string[] | null
+    allowed_skills: string[] | null
+    risk_level_max: string
+    auto_approve_tools: string[] | null
+    is_default: boolean
+    enabled: boolean
+  }> {
+    const response = await fetch(`${API_BASE}/agents/${id}`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async createAgent(data: {
+    name: string
+    description?: string
+    system_prompt?: string
+    model?: string
+    allowed_tools?: string[]
+    allowed_skills?: string[]
+    risk_level_max?: string
+    auto_approve_tools?: string[]
+  }): Promise<{ id: string }> {
+    const response = await fetch(`${API_BASE}/agents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async updateAgent(id: string, data: {
+    name?: string
+    description?: string
+    system_prompt?: string
+    model?: string
+    allowed_tools?: string[] | null
+    allowed_skills?: string[] | null
+    risk_level_max?: string
+    auto_approve_tools?: string[] | null
+    enabled?: boolean
+  }): Promise<void> {
+    const response = await fetch(`${API_BASE}/agents/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async deleteAgent(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/agents/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  // Workflows
+  async getWorkflows(): Promise<Array<{
+    id: string
+    name: string
+    description: string | null
+    trigger_phrase: string | null
+    agent_id: string | null
+    steps: Array<{ order: number; prompt: string; store_as: string }>
+    approval_mode: string
+    enabled: boolean
+    created_at: string
+    updated_at: string
+  }>> {
+    const response = await fetch(`${API_BASE}/workflows`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async createWorkflow(data: {
+    name: string
+    description?: string
+    trigger_phrase?: string
+    agent_id?: string
+    steps: Array<{ order: number; prompt: string; store_as: string }>
+    approval_mode?: string
+  }): Promise<{ id: string }> {
+    const response = await fetch(`${API_BASE}/workflows`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async updateWorkflow(id: string, data: Record<string, unknown>): Promise<void> {
+    const response = await fetch(`${API_BASE}/workflows/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async deleteWorkflow(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/workflows/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  },
+
+  async runWorkflow(id: string): Promise<{
+    id: string
+    status: string
+    context: Record<string, string> | null
+    error: string | null
+    started_at: string
+    completed_at: string | null
+  }> {
+    const response = await fetch(`${API_BASE}/workflows/${id}/run`, { method: 'POST' })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async getWorkflowHistory(id: string): Promise<Array<{
+    id: string
+    workflow_id: string
+    status: string
+    current_step: number
+    context: Record<string, string> | null
+    error: string | null
+    started_at: string
+    completed_at: string | null
+  }>> {
+    const response = await fetch(`${API_BASE}/workflows/${id}/history`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  // Analytics / Dashboard
+  async getAnalyticsOverview(): Promise<{
+    conversations: number
+    messages: number
+    agents: number
+    tool_calls: number
+    approval_rate: number
+    active_tasks: number
+    workflows: number
+    active_skills: number
+  }> {
+    const response = await fetch(`${API_BASE}/analytics/overview`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async getAnalyticsTools(): Promise<{
+    tools: Array<{
+      tool: string
+      count: number
+      avg_time_ms: number
+      failures: number
+      error_rate: number
+    }>
+  }> {
+    const response = await fetch(`${API_BASE}/analytics/tools`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async getAnalyticsTimeline(days?: number): Promise<{
+    timeline: Array<{
+      date: string
+      conversations: number
+      tool_calls: number
+    }>
+  }> {
+    const params = days ? `?days=${days}` : ''
+    const response = await fetch(`${API_BASE}/analytics/timeline${params}`)
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  // Document Upload
+  async uploadDocument(file: File, conversationId?: string): Promise<{
+    id: string
+    filename: string
+    mime_type: string
+    file_size: number
+    has_text: boolean
+    text_preview: string
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (conversationId) {
+      formData.append('conversation_id', conversationId)
+    }
+    const response = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      headers: { ...getLangHeaders() },
+      body: formData,
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return response.json()
+  },
+
+  async deleteDocument(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/upload/${id}`, { method: 'DELETE', headers: { ...getLangHeaders() } })
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
   },
 

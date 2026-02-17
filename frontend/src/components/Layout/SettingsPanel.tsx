@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Save, Loader2, Check } from 'lucide-react'
+import { X, Save, Loader2, Check, Globe } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../services/api'
+import { useTranslation } from 'react-i18next'
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -18,6 +19,7 @@ interface Settings {
 }
 
 export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
+  const { t, i18n } = useTranslation()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -68,7 +70,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
       <div className="bg-nv-black-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-nv-gray-light animate-slide-up">
         {/* Header */}
         <div className="bg-nv-black px-6 py-4 border-b border-nv-gray-light flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Einstellungen</h2>
+          <h2 className="text-lg font-semibold">{t('settings.title')}</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-nv-black-lighter rounded-lg transition-colors"
@@ -88,7 +90,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               {/* LLM Provider */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  LLM Provider
+                  {t('settings.llmProvider')}
                 </label>
                 <div className="flex gap-2">
                   {settings?.available_providers.map((p) => (
@@ -107,21 +109,21 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   ))}
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  {provider === 'ollama' && 'Lokales LLM - keine API-Kosten, aber langsamer'}
-                  {provider === 'claude' && 'Anthropic Claude API - beste Qualität'}
-                  {provider === 'openai' && 'OpenAI GPT API - schnell und zuverlässig'}
+                  {provider === 'ollama' && t('settings.providerOllamaPanel')}
+                  {provider === 'claude' && t('settings.providerClaude')}
+                  {provider === 'openai' && t('settings.providerOpenai')}
                 </p>
               </div>
 
               {/* System Prompt */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  System Prompt
+                  {t('settings.systemPrompt')}
                 </label>
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Optionaler System-Prompt für alle Konversationen..."
+                  placeholder={t('settings.systemPromptPlaceholder')}
                   rows={4}
                   className="w-full px-4 py-3 bg-nv-black border border-nv-gray-light rounded-lg
                              text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent
@@ -129,10 +131,41 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                 />
               </div>
 
+              {/* Language Switcher */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-nv-accent" />
+                  {t('settings.language')}
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { code: 'de', label: 'Deutsch' },
+                    { code: 'en', label: 'English' },
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        i18n.changeLanguage(lang.code)
+                        localStorage.setItem('axon-language', lang.code)
+                        api.updateSettings({ language: lang.code })
+                      }}
+                      className={clsx(
+                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                        i18n.language === lang.code
+                          ? 'bg-nv-accent text-nv-black'
+                          : 'bg-nv-black-lighter text-gray-400 hover:text-white border border-nv-gray-light'
+                      )}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Version Info */}
               <div className="pt-4 border-t border-nv-gray-light">
                 <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>Version</span>
+                  <span>{t('settings.version')}</span>
                   <span className="font-mono">{settings?.app_version}</span>
                 </div>
               </div>
@@ -146,7 +179,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             onClick={onClose}
             className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
           >
-            Abbrechen
+            {t('settings.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -161,7 +194,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             ) : (
               <Save className="w-4 h-4" />
             )}
-            {saved ? 'Gespeichert' : 'Speichern'}
+            {saved ? t('settings.savedPanel') : t('settings.savePanelBtn')}
           </button>
         </div>
       </div>

@@ -2,11 +2,14 @@ import { useState, useCallback } from 'react'
 import { Message } from '../components/Chat/MessageList'
 import { ToolApprovalRequest } from '../components/Tools/ToolApprovalModal'
 import { api } from '../services/api'
+import { useTranslation } from 'react-i18next'
 
 export function useChat(
   sessionId: string | null,
-  onSessionChange: (id: string) => void
+  onSessionChange: (id: string) => void,
+  agentId?: string | null
 ) {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -66,7 +69,7 @@ export function useChat(
               setPendingApproval({
                 tool: event.tool || '',
                 params: event.params || {},
-                description: event.description || `Tool ${event.tool} moechte ausgefuehrt werden`,
+                description: event.description || t('useChat.toolDefault', { tool: event.tool }),
                 risk_level: (event.risk_level as 'low' | 'medium' | 'high' | 'critical') || 'medium',
                 approval_id: event.approval_id,
               })
@@ -136,7 +139,7 @@ export function useChat(
             case 'error':
               setMessages(prev => prev.map(msg =>
                 msg.id === assistantId
-                  ? { ...msg, content: msg.content || `Fehler: ${event.message || 'Unbekannter Fehler'}` }
+                  ? { ...msg, content: msg.content || t('useChat.errorDefault', { message: event.message || t('useChat.errorUnknown') }) }
                   : msg
               ))
               break
@@ -149,13 +152,15 @@ export function useChat(
               break
           }
         },
-        currentSessionId || undefined
+        currentSessionId || undefined,
+        undefined,
+        agentId || undefined
       )
     } catch (error) {
       console.error('Failed to send message:', error)
       setMessages(prev => prev.map(msg =>
         msg.id === assistantId
-          ? { ...msg, content: 'Fehler beim Senden der Nachricht. Bitte versuche es erneut.' }
+          ? { ...msg, content: t('useChat.sendError') }
           : msg
       ))
     }
@@ -165,7 +170,7 @@ export function useChat(
 
     setIsLoading(false)
     setIsStreaming(false)
-  }, [currentSessionId, onSessionChange])
+  }, [currentSessionId, onSessionChange, agentId])
 
   const approveToolCall = useCallback(async (scope: 'once' | 'session') => {
     if (!pendingApproval?.approval_id) return

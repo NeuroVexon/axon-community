@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# Security: Non-root user
+RUN useradd -m -s /bin/bash sandbox
+
+# Common Python packages
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    requests \
+    matplotlib
+
+# Cleanup
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER sandbox
+WORKDIR /home/sandbox
+
+# Default: python shell
+CMD ["python3"]

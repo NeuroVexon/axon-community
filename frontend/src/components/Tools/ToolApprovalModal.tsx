@@ -8,6 +8,7 @@ import {
   X
 } from 'lucide-react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 export interface ToolApprovalRequest {
   tool: string
@@ -20,33 +21,6 @@ interface ToolApprovalModalProps {
   request: ToolApprovalRequest
   onApprove: (scope: 'once' | 'session') => void
   onReject: () => void
-}
-
-const riskConfig = {
-  low: {
-    color: 'text-green-500',
-    bg: 'bg-green-500/10',
-    border: 'border-green-500/30',
-    label: 'Niedriges Risiko'
-  },
-  medium: {
-    color: 'text-yellow-500',
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
-    label: 'Mittleres Risiko'
-  },
-  high: {
-    color: 'text-orange-500',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/30',
-    label: 'Hohes Risiko'
-  },
-  critical: {
-    color: 'text-red-500',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    label: 'Kritisch'
-  },
 }
 
 const toolIcons: Record<string, React.ReactNode> = {
@@ -63,6 +37,35 @@ export default function ToolApprovalModal({
   onApprove,
   onReject,
 }: ToolApprovalModalProps) {
+  const { t } = useTranslation()
+
+  const riskConfig = {
+    low: {
+      color: 'text-green-500',
+      bg: 'bg-green-500/10',
+      border: 'border-green-500/30',
+      label: t('approval.riskLow')
+    },
+    medium: {
+      color: 'text-yellow-500',
+      bg: 'bg-yellow-500/10',
+      border: 'border-yellow-500/30',
+      label: t('approval.riskMedium')
+    },
+    high: {
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/30',
+      label: t('approval.riskHigh')
+    },
+    critical: {
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/30',
+      label: t('approval.riskCritical')
+    },
+  }
+
   const risk = riskConfig[request.risk_level]
 
   return (
@@ -72,7 +75,7 @@ export default function ToolApprovalModal({
         <div className="bg-nv-black px-6 py-4 border-b border-nv-gray-light flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6 text-nv-accent" />
-            <h2 className="text-lg font-semibold">Tool-Genehmigung</h2>
+            <h2 className="text-lg font-semibold">{t('approval.title')}</h2>
           </div>
           <button
             onClick={onReject}
@@ -109,7 +112,7 @@ export default function ToolApprovalModal({
           {/* Parameters */}
           <div className="bg-nv-black rounded-lg p-3">
             <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
-              Parameter
+              {t('approval.parameters')}
             </p>
             <pre className="text-sm text-gray-300 overflow-x-auto font-mono">
               {JSON.stringify(request.params, null, 2)}
@@ -121,8 +124,7 @@ export default function ToolApprovalModal({
             <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-300">
-                Diese Aktion kann Änderungen an deinem System vornehmen.
-                Prüfe die Parameter sorgfältig.
+                {t('approval.warning')}
               </p>
             </div>
           )}
@@ -137,14 +139,14 @@ export default function ToolApprovalModal({
                 className="flex-1 px-4 py-2.5 bg-nv-accent hover:bg-opacity-90
                            text-nv-black font-semibold rounded-lg transition-colors"
               >
-                Einmal erlauben
+                {t('approval.allowOnce')}
               </button>
               <button
                 onClick={() => onApprove('session')}
                 className="flex-1 px-4 py-2.5 bg-nv-success hover:bg-opacity-90
                            text-nv-black font-semibold rounded-lg transition-colors"
               >
-                Für Session
+                {t('approval.allowSession')}
               </button>
             </div>
             <button
@@ -153,7 +155,7 @@ export default function ToolApprovalModal({
                          text-gray-300 font-medium rounded-lg transition-colors
                          border border-nv-gray-light"
             >
-              Ablehnen
+              {t('approval.reject')}
             </button>
           </div>
         </div>

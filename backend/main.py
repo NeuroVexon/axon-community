@@ -17,7 +17,7 @@ import logging
 
 from core.config import settings
 from db.database import init_db
-from api import chat, audit, settings as settings_api, tools, memory, skills
+from api import chat, audit, settings as settings_api, tools, memory, skills, agents, scheduler, workflows, mcp, analytics, upload
 
 # Logging setup
 logging.basicConfig(
@@ -35,12 +35,27 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
 
+    # Create default agents
+    from db.database import async_session
+    from agent.agent_manager import AgentManager
+    async with async_session() as db:
+        agent_mgr = AgentManager(db)
+        await agent_mgr.ensure_defaults()
+
+    # Start task scheduler
+    from agent.scheduler import task_scheduler
+    task_scheduler.start()
+    await task_scheduler.sync_tasks()
+    logger.info("TaskScheduler gestartet")
+
     # Create outputs directory
     os.makedirs(settings.outputs_dir, exist_ok=True)
 
     yield
 
     # Shutdown
+    from agent.scheduler import task_scheduler as ts
+    ts.stop()
     logger.info("Shutting down Axon")
 
 
@@ -67,6 +82,12 @@ app.include_router(audit.router, prefix="/api/v1")
 app.include_router(settings_api.router, prefix="/api/v1")
 app.include_router(memory.router, prefix="/api/v1")
 app.include_router(skills.router, prefix="/api/v1")
+app.include_router(agents.router, prefix="/api/v1")
+app.include_router(scheduler.router, prefix="/api/v1")
+app.include_router(workflows.router, prefix="/api/v1")
+app.include_router(mcp.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(upload.router, prefix="/api/v1")
 
 
 @app.get("/")

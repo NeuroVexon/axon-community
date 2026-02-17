@@ -16,7 +16,7 @@ class LLMProvider(str, Enum):
 class Settings(BaseSettings):
     # App
     app_name: str = "Axon by NeuroVexon"
-    app_version: str = "1.1.0"
+    app_version: str = "2.0.0"
     debug: bool = False
 
     # Server
@@ -49,6 +49,18 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 10
     code_execution_timeout: int = 30
     code_execution_memory_mb: int = 256
+
+    # E-Mail Integration
+    email_enabled: bool = False
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
 
     # Shell Whitelist
     shell_whitelist: list[str] = [

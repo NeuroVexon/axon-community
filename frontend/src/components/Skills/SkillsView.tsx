@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Puzzle, Shield, ShieldCheck, ToggleLeft, ToggleRight, RefreshCw, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../services/api'
+import { useTranslation } from 'react-i18next'
 
 interface SkillEntry {
   id: string
@@ -21,6 +22,7 @@ export default function SkillsView() {
   const [skills, setSkills] = useState<SkillEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     loadSkills()
@@ -87,10 +89,10 @@ export default function SkillsView() {
 
   const riskLabel = (level: string) => {
     switch (level) {
-      case 'low': return 'Niedrig'
-      case 'medium': return 'Mittel'
-      case 'high': return 'Hoch'
-      case 'critical': return 'Kritisch'
+      case 'low': return t('skills.riskLow')
+      case 'medium': return t('skills.riskMedium')
+      case 'high': return t('skills.riskHigh')
+      case 'critical': return t('skills.riskCritical')
       default: return level
     }
   }
@@ -103,9 +105,9 @@ export default function SkillsView() {
           <div className="flex items-center gap-3">
             <Puzzle className="w-8 h-8 text-nv-accent" />
             <div>
-              <h1 className="text-2xl font-bold">Skills</h1>
+              <h1 className="text-2xl font-bold">{t('skills.title')}</h1>
               <p className="text-sm text-gray-500">
-                Erweiterbare Fähigkeiten mit Sicherheitsprüfung
+                {t('skills.subtitle')}
               </p>
             </div>
           </div>
@@ -117,7 +119,7 @@ export default function SkillsView() {
                        flex items-center gap-2 disabled:opacity-50"
           >
             <RefreshCw className={clsx('w-4 h-4', scanning && 'animate-spin')} />
-            Scannen
+            {t('skills.scan')}
           </button>
         </div>
 
@@ -126,10 +128,9 @@ export default function SkillsView() {
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-nv-accent mt-0.5" />
             <div className="text-sm text-gray-400">
-              <p className="font-semibold text-white mb-1">Sicherheits-Gate</p>
+              <p className="font-semibold text-white mb-1">{t('skills.securityGate')}</p>
               <p>
-                Skills müssen explizit genehmigt werden, bevor sie ausgeführt werden können.
-                Bei jeder Dateiänderung wird die Genehmigung automatisch widerrufen.
+                {t('skills.securityInfo')}
               </p>
             </div>
           </div>
@@ -146,10 +147,8 @@ export default function SkillsView() {
         {!loading && skills.length === 0 && (
           <div className="text-center py-12">
             <Puzzle className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-            <p className="text-gray-500">Keine Skills gefunden.</p>
-            <p className="text-sm text-gray-600 mt-1">
-              Lege .py Dateien in <code className="text-nv-accent">backend/skills/</code> ab und klicke "Scannen".
-            </p>
+            <p className="text-gray-500">{t('skills.empty')}</p>
+            <p className="text-sm text-gray-600 mt-1" dangerouslySetInnerHTML={{ __html: t('skills.emptyHint') }} />
           </div>
         )}
 
@@ -180,7 +179,7 @@ export default function SkillsView() {
                     </div>
                     <p className="text-gray-400 text-sm mb-3">{skill.description}</p>
                     <div className="flex items-center gap-4 text-xs text-gray-600">
-                      {skill.author && <span>Autor: {skill.author}</span>}
+                      {skill.author && <span>{t('skills.author', { author: skill.author })}</span>}
                       <span>Name: <code className="text-gray-400">{skill.name}</code></span>
                     </div>
                   </div>
@@ -193,20 +192,20 @@ export default function SkillsView() {
                         onClick={() => handleApprove(skill.id, false)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400
                                    border border-green-500/30 rounded-lg text-sm hover:bg-green-500/20 transition-all"
-                        title="Genehmigung widerrufen"
+                        title={t('skills.revokeTooltip')}
                       >
                         <ShieldCheck className="w-4 h-4" />
-                        Genehmigt
+                        {t('skills.approved')}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleApprove(skill.id, true)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500/10 text-yellow-400
                                    border border-yellow-500/30 rounded-lg text-sm hover:bg-yellow-500/20 transition-all"
-                        title="Skill genehmigen"
+                        title={t('skills.approveTooltip')}
                       >
                         <AlertTriangle className="w-4 h-4" />
-                        Genehmigen
+                        {t('skills.approve')}
                       </button>
                     )}
 
@@ -220,7 +219,7 @@ export default function SkillsView() {
                             ? 'text-nv-accent hover:text-nv-accent/80'
                             : 'text-gray-500 hover:text-white'
                         )}
-                        title={skill.enabled ? 'Deaktivieren' : 'Aktivieren'}
+                        title={skill.enabled ? t('skills.deactivate') : t('skills.activate')}
                       >
                         {skill.enabled ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
                       </button>
@@ -230,7 +229,7 @@ export default function SkillsView() {
                     <button
                       onClick={() => handleDelete(skill.id)}
                       className="p-1.5 text-gray-500 hover:text-red-400 transition-all"
-                      title="Skill entfernen"
+                      title={t('skills.deleteTooltip')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

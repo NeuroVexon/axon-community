@@ -105,6 +105,89 @@ class Skill(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Agent(Base):
+    """Agent Profiles — different personas with different permissions"""
+    __tablename__ = "agents"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    system_prompt = Column(Text, nullable=True)
+    model = Column(String(100), nullable=True)  # z.B. "ollama/qwen2.5:7b", "claude-sonnet", None = global default
+    allowed_tools = Column(JSON, nullable=True)  # ["web_search", "file_read"] oder None = alle
+    allowed_skills = Column(JSON, nullable=True)  # ["email_inbox"] oder None = alle
+    risk_level_max = Column(String(20), default="high")  # low, medium, high — max ohne Approval
+    auto_approve_tools = Column(JSON, nullable=True)  # ["web_search"] — Tools ohne Approval
+    is_default = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ScheduledTask(Base):
+    """Scheduled Tasks — proaktive Aufgaben mit Approval-Gate"""
+    __tablename__ = "scheduled_tasks"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    cron_expression = Column(String(100), nullable=False)  # z.B. "0 9 * * *" = taeglich 9 Uhr
+    agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
+    prompt = Column(Text, nullable=False)  # Was der Agent ausfuehren soll
+    approval_required = Column(Boolean, default=True)
+    notification_channel = Column(String(20), default="web")  # web, telegram, discord
+    max_retries = Column(Integer, default=1)
+    last_run = Column(DateTime, nullable=True)
+    last_result = Column(Text, nullable=True)
+    next_run = Column(DateTime, nullable=True)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Workflow(Base):
+    """Workflow-Chains — mehrstufige Agent-Aufgaben"""
+    __tablename__ = "workflows"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    trigger_phrase = Column(String(255), nullable=True)  # z.B. "Tagesstart", "Wochenbericht"
+    agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
+    steps = Column(JSON, nullable=False)  # [{order, prompt, store_as}]
+    approval_mode = Column(String(20), default="each_step")  # each_step, once_at_start, never
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WorkflowRun(Base):
+    """Workflow-Ausfuehrungen — History"""
+    __tablename__ = "workflow_runs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    workflow_id = Column(String(36), ForeignKey("workflows.id"), nullable=False)
+    status = Column(String(20), default="running")  # running, completed, failed, cancelled
+    current_step = Column(Integer, default=0)
+    context = Column(JSON, nullable=True)  # Variable-Kontext {store_as: result}
+    error = Column(Text, nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class UploadedDocument(Base):
+    """Uploaded Documents — Dateien die in Conversations hochgeladen wurden"""
+    __tablename__ = "uploaded_documents"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    conversation_id = Column(String(36), ForeignKey("conversations.id"), nullable=True)
+    filename = Column(String(500), nullable=False)
+    mime_type = Column(String(100), nullable=True)
+    file_size = Column(Integer, default=0)
+    extracted_text = Column(Text, nullable=True)
+    file_path = Column(String(1000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Settings(Base):
     """User Settings"""
     __tablename__ = "settings"

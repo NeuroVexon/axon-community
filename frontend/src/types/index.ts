@@ -126,4 +126,21 @@ export interface AppState {
   isInitialized: boolean
 }
 
-export type View = 'chat' | 'audit' | 'settings'
+// Agent Types
+export interface AgentProfile {
+  id: string
+  name: string
+  description: string
+  system_prompt: string | null
+  model: string | null
+  allowed_tools: string[] | null
+  allowed_skills: string[] | null
+  risk_level_max: string
+  auto_approve_tools: string[] | null
+  is_default: boolean
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type View = 'chat' | 'audit' | 'agents' | 'settings'

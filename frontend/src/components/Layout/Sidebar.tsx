@@ -7,10 +7,15 @@ import {
   Bird,
   Brain,
   Puzzle,
+  Bot,
+  Clock,
+  GitBranch,
+  BarChart3,
   Trash2
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '../../services/api'
+import { useTranslation } from 'react-i18next'
 
 interface Conversation {
   id: string
@@ -20,8 +25,8 @@ interface Conversation {
 }
 
 interface SidebarProps {
-  currentView: 'chat' | 'audit' | 'memory' | 'skills' | 'settings'
-  onViewChange: (view: 'chat' | 'audit' | 'memory' | 'skills' | 'settings') => void
+  currentView: 'dashboard' | 'chat' | 'audit' | 'memory' | 'skills' | 'agents' | 'scheduler' | 'workflows' | 'settings'
+  onViewChange: (view: 'dashboard' | 'chat' | 'audit' | 'memory' | 'skills' | 'agents' | 'scheduler' | 'workflows' | 'settings') => void
   currentSession: string | null
   onNewChat: () => void
   onSelectConversation?: (id: string) => void
@@ -35,13 +40,18 @@ export default function Sidebar({
   onSelectConversation
 }: SidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const { t } = useTranslation()
 
   const navItems = [
-    { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
-    { id: 'memory' as const, label: 'Gedächtnis', icon: Brain },
-    { id: 'skills' as const, label: 'Skills', icon: Puzzle },
-    { id: 'audit' as const, label: 'Audit Log', icon: ClipboardList },
-    { id: 'settings' as const, label: 'Einstellungen', icon: Settings },
+    { id: 'dashboard' as const, label: t('sidebar.dashboard'), icon: BarChart3 },
+    { id: 'chat' as const, label: t('sidebar.chat'), icon: MessageSquare },
+    { id: 'memory' as const, label: t('sidebar.memory'), icon: Brain },
+    { id: 'agents' as const, label: t('sidebar.agents'), icon: Bot },
+    { id: 'scheduler' as const, label: t('sidebar.scheduler'), icon: Clock },
+    { id: 'workflows' as const, label: t('sidebar.workflows'), icon: GitBranch },
+    { id: 'skills' as const, label: t('sidebar.skills'), icon: Puzzle },
+    { id: 'audit' as const, label: t('sidebar.audit'), icon: ClipboardList },
+    { id: 'settings' as const, label: t('sidebar.settings'), icon: Settings },
   ]
 
   useEffect(() => {
@@ -98,7 +108,7 @@ export default function Sidebar({
                      hover:bg-opacity-90 shadow-nv-glow transition-all flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />
-          Neuer Chat
+          {t('sidebar.newChat')}
         </button>
       </div>
 
@@ -130,7 +140,7 @@ export default function Sidebar({
       {conversations.length > 0 && (
         <div className="flex-1 overflow-y-auto px-4 mt-4 border-t border-nv-gray-light pt-4">
           <p className="text-xs text-gray-600 uppercase tracking-wider mb-2 px-2">
-            Verlauf
+            {t('sidebar.history')}
           </p>
           <div className="space-y-1">
             {conversations.map((conv) => (
@@ -145,7 +155,7 @@ export default function Sidebar({
                 )}
               >
                 <span className="truncate flex-1">
-                  {conv.title || 'Unbenannt'}
+                  {conv.title || t('sidebar.untitled')}
                 </span>
                 <button
                   onClick={(e) => handleDelete(e, conv.id)}
@@ -163,10 +173,10 @@ export default function Sidebar({
       <div className="p-4 border-t border-nv-gray-light">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <div className="w-2 h-2 bg-nv-success rounded-full animate-pulse" />
-          <span>Axon v1.1.0</span>
+          <span>Axon v2.0.0</span>
         </div>
         <p className="text-xs text-gray-600 mt-1">
-          Agentic AI - ohne Kontrollverlust
+          {t('sidebar.tagline')}
         </p>
       </div>
     </aside>

@@ -135,7 +135,7 @@ docs: Update installation guide
 
 ## Lizenz
 
-Mit deinem Beitrag stimmst du zu, dass dein Code unter der [Business Source License 1.1](LICENSE) veröffentlicht wird.
+Mit deinem Beitrag stimmst du zu, dass dein Code unter der [Apache License 2.0](LICENSE) veröffentlicht wird.
 
 ## Fragen?
 

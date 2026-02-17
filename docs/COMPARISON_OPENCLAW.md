@@ -52,7 +52,7 @@ OpenClaw hat unzählige Forks, viele davon Scams oder Malware. Keine zentrale, v
 - Professionell entwickelt
 - Open Source und auditierbar
 - Deutsche Firma, deutsche Docs
-- Klare Lizenz (BSL 1.1)
+- Klare Lizenz (Apache 2.0)
 
 ## Feature-Vergleich
 

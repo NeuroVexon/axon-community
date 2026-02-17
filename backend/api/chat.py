@@ -2,7 +2,7 @@
 Axon by NeuroVexon - Chat API Endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
@@ -12,15 +12,17 @@ import json
 import logging
 
 from db.database import get_db
-from db.models import Conversation, Message, Settings
+from db.models import Agent, Conversation, Message, Settings, UploadedDocument
 from llm.router import llm_router
 from llm.provider import ChatMessage
 from agent.orchestrator import AgentOrchestrator
 from agent.memory import MemoryManager
+from agent.agent_manager import AgentManager
 from agent.permission_manager import permission_manager, PermissionScope
 from sqlalchemy import select
 from core.config import LLMProvider
 from core.security import decrypt_value
+from core.i18n import t, set_language, get_lang_from_header
 
 ENCRYPTED_SETTINGS = {"anthropic_api_key", "openai_api_key"}
 
@@ -49,19 +51,13 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
     system_prompt: Optional[str] = None
+    agent_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     session_id: str
     message: str
     tool_calls: Optional[list] = None
-
-
-class ToolApprovalRequest(BaseModel):
-    session_id: str
-    tool: str
-    params: dict
-    decision: str  # once, session, never
 
 
 @router.post("/send")
@@ -222,6 +218,7 @@ async def stream_message(
 @router.post("/agent")
 async def agent_message(
     request: ChatRequest,
+    raw_request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -231,6 +228,9 @@ async def agent_message(
     DB session is released before streaming starts to avoid SQLite locks.
     The generator uses its own session for saving results.
     """
+    # Set language from Accept-Language header
+    set_language(get_lang_from_header(raw_request.headers.get("accept-language")))
+
     # Load settings and update router
     db_settings = await load_settings_to_router(db)
     current_provider = db_settings.get("llm_provider", "ollama")
@@ -260,6 +260,16 @@ async def agent_message(
     db.add(user_message)
     await db.commit()
 
+    # Load agent profile
+    agent_manager = AgentManager(db)
+    agent = None
+    if request.agent_id:
+        agent = await agent_manager.get_agent(request.agent_id)
+        if not agent or not agent.enabled:
+            raise HTTPException(status_code=404, detail=t("chat.agent_not_found"))
+    else:
+        agent = await agent_manager.get_default_agent()
+
     # Build message history from DB
     # NOTE: mistral:7b-instruct breaks tool calling when system/markdown prompt is present.
     # Use plain text memory as initial assistant message to preserve tool calling.
@@ -268,12 +278,39 @@ async def agent_message(
 
     messages = []
 
-    # Memory context as assistant self-introduction (preserves tool calling)
+    # Agent system prompt as assistant self-introduction (preserves tool calling)
+    intro_parts = []
+    if agent and agent.system_prompt:
+        intro_parts.append(agent.system_prompt)
+    elif agent:
+        intro_parts.append(t("chat.intro_agent", name=agent.name))
+    else:
+        intro_parts.append(t("chat.intro_default"))
+
     if memory_block:
-        messages.append(ChatMessage(
-            role="assistant",
-            content=f"Ich bin Axon, dein KI-Assistent. {memory_block}"
-        ))
+        intro_parts.append(memory_block)
+
+    # Document context: Lade hochgeladene Dokumente dieser Conversation
+    doc_result = await db.execute(
+        select(UploadedDocument)
+        .where(UploadedDocument.conversation_id == conversation.id)
+        .order_by(UploadedDocument.created_at.asc())
+        .limit(10)
+    )
+    docs = doc_result.scalars().all()
+    if docs:
+        from agent.document_handler import format_for_context
+        doc_contexts = []
+        for doc in docs:
+            if doc.extracted_text:
+                doc_contexts.append(format_for_context(doc.filename, doc.extracted_text))
+        if doc_contexts:
+            intro_parts.append(t("chat.docs_uploaded") + "\n" + "\n\n".join(doc_contexts))
+
+    messages.append(ChatMessage(
+        role="assistant",
+        content=" ".join(intro_parts)
+    ))
 
     history_result = await db.execute(
         select(Message)
@@ -286,6 +323,9 @@ async def agent_message(
         messages.append(ChatMessage(role=msg.role, content=msg.content))
 
     session_id = conversation.id
+
+    # Capture agent data for streaming generator
+    agent_data = agent
 
     # Capture data we need, then release the initial DB session
     # The streaming generator will use its own sessions
@@ -325,9 +365,15 @@ async def agent_message(
 
         # Use a fresh DB session for the streaming phase (audit logging, memory tools)
         async with async_session() as stream_db:
+            # Reload agent in stream session if needed
+            stream_agent = None
+            if agent_data:
+                stream_agent = await stream_db.get(Agent, agent_data.id)
+
             orchestrator = AgentOrchestrator(
                 llm_provider=provider,
-                db_session=stream_db
+                db_session=stream_db,
+                agent=stream_agent
             )
 
             full_response = ""
@@ -404,7 +450,6 @@ async def list_conversations(
     db: AsyncSession = Depends(get_db)
 ):
     """List recent conversations"""
-    from sqlalchemy import select
     result = await db.execute(
         select(Conversation)
         .order_by(Conversation.updated_at.desc())
@@ -428,7 +473,6 @@ async def get_conversation(
     db: AsyncSession = Depends(get_db)
 ):
     """Get a conversation with messages"""
-    from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
     result = await db.execute(

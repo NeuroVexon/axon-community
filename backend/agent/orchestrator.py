@@ -15,7 +15,10 @@ from .tool_registry import ToolRegistry, tool_registry, RiskLevel
 from .permission_manager import PermissionManager, permission_manager, PermissionScope
 from .audit_logger import AuditLogger, AuditEventType
 from .tool_handlers import execute_tool, ToolExecutionError
+from .agent_manager import AgentManager
 from llm.provider import BaseLLMProvider, ChatMessage, LLMResponse
+from db.models import Agent
+from core.i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,7 @@ class AgentOrchestrator:
     Orchestrates the agent loop:
     1. User sends message
     2. LLM responds (possibly with tool calls)
-    3. Tool calls require user approval
+    3. Tool calls require user approval (per-agent permissions)
     4. Tools are executed and results fed back to LLM
     5. Repeat until LLM gives final response
     """
@@ -35,12 +38,14 @@ class AgentOrchestrator:
         llm_provider: BaseLLMProvider,
         db_session: AsyncSession,
         tools: Optional[ToolRegistry] = None,
-        permissions: Optional[PermissionManager] = None
+        permissions: Optional[PermissionManager] = None,
+        agent: Optional[Agent] = None
     ):
         self.llm = llm_provider
         self.tools = tools or tool_registry
         self.permissions = permissions or permission_manager
         self.audit = AuditLogger(db_session)
+        self.agent = agent  # Agent-Profil mit Permissions
 
     async def process_message(
         self,
@@ -96,13 +101,32 @@ class AgentOrchestrator:
                     }
                     continue
 
+                # Agent-level permission check: is this tool allowed for this agent?
+                if self.agent and not AgentManager.is_tool_allowed(self.agent, tool_name):
+                    logger.info(f"Agent '{self.agent.name}' darf {tool_name} nicht nutzen")
+                    yield {
+                        "type": "tool_error",
+                        "tool": tool_name,
+                        "error": t("orch.agent_no_access", agent=self.agent.name, tool=tool_name)
+                    }
+                    messages.append(ChatMessage(
+                        role="assistant",
+                        content=t("orch.tool_not_allowed", tool=tool_name)
+                    ))
+                    continue
+
                 # Log the request
                 await self.audit.log_tool_request(
                     session_id, tool_name, tool_params
                 )
 
-                # Auto-approve tools that don't require approval (e.g. memory tools)
-                if not tool_def.requires_approval:
+                # Check auto-approve: agent-level OR tool-level
+                agent_auto_approved = (
+                    self.agent is not None
+                    and AgentManager.is_auto_approved(self.agent, tool_name)
+                )
+
+                if not tool_def.requires_approval or agent_auto_approved:
                     logger.info(f"Auto-approving {tool_name} (requires_approval=False)")
                     # Skip approval flow, go straight to execution
                     start_time = time.time()
@@ -157,11 +181,11 @@ class AgentOrchestrator:
                         yield {
                             "type": "tool_blocked",
                             "tool": tool_name,
-                            "message": "Tool wurde vom Benutzer blockiert"
+                            "message": t("orch.tool_blocked")
                         }
                         messages.append(ChatMessage(
                             role="assistant",
-                            content=f"Tool {tool_name} wurde blockiert."
+                            content=t("orch.tool_blocked_msg", tool=tool_name)
                         ))
                         continue
 
@@ -170,7 +194,7 @@ class AgentOrchestrator:
                         session_id=session_id,
                         tool=tool_name,
                         params=tool_params,
-                        description=tool_def.description_de,
+                        description=tool_def.get_description(),
                         risk_level=tool_def.risk_level.value
                     )
 
@@ -203,7 +227,7 @@ class AgentOrchestrator:
                         }
                         messages.append(ChatMessage(
                             role="assistant",
-                            content=f"Benutzer hat {tool_name} abgelehnt."
+                            content=t("orch.user_rejected", tool=tool_name)
                         ))
                         continue
 

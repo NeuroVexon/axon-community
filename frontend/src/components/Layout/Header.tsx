@@ -1,5 +1,6 @@
 import { Settings, Moon, Sun, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface HeaderProps {
   title?: string
@@ -9,6 +10,7 @@ interface HeaderProps {
 
 export default function Header({ title, onSettingsClick, onRefresh }: HeaderProps) {
   const [isDark, setIsDark] = useState(true)
+  const { t } = useTranslation()
 
   const toggleTheme = () => {
     setIsDark(!isDark)
@@ -32,7 +34,7 @@ export default function Header({ title, onSettingsClick, onRefresh }: HeaderProp
             onClick={onRefresh}
             className="p-2 text-gray-400 hover:text-white hover:bg-nv-black-lighter
                        rounded-lg transition-colors"
-            title="Aktualisieren"
+            title={t('header.refresh')}
           >
             <RefreshCw className="w-5 h-5" />
           </button>
@@ -42,7 +44,7 @@ export default function Header({ title, onSettingsClick, onRefresh }: HeaderProp
           onClick={toggleTheme}
           className="p-2 text-gray-400 hover:text-white hover:bg-nv-black-lighter
                      rounded-lg transition-colors"
-          title={isDark ? 'Light Mode' : 'Dark Mode'}
+          title={isDark ? t('header.lightMode') : t('header.darkMode')}
         >
           {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
@@ -52,7 +54,7 @@ export default function Header({ title, onSettingsClick, onRefresh }: HeaderProp
             onClick={onSettingsClick}
             className="p-2 text-gray-400 hover:text-white hover:bg-nv-black-lighter
                        rounded-lg transition-colors"
-            title="Einstellungen"
+            title={t('header.settings')}
           >
             <Settings className="w-5 h-5" />
           </button>

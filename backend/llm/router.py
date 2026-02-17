@@ -1,3 +1,5 @@
+# Copyright 2026 NeuroVexon UG (haftungsbeschränkt)
+# SPDX-License-Identifier: Apache-2.0
 """
 Axon by NeuroVexon - LLM Provider Router
 """
@@ -37,6 +39,11 @@ class LLMRouter:
             api_key = db_settings.get("openai_api_key") or settings.openai_api_key
             model = db_settings.get("openai_model") or settings.openai_model
             self._providers[LLMProvider.OPENAI].update_config(api_key=api_key, model=model)
+
+        # Update Ollama provider if exists
+        if LLMProvider.OLLAMA in self._providers:
+            model = db_settings.get("ollama_model") or settings.ollama_model
+            self._providers[LLMProvider.OLLAMA].update_config(model=model)
 
     def _get_or_create_provider(self, provider: LLMProvider) -> BaseLLMProvider:
         """Get or create a provider instance"""

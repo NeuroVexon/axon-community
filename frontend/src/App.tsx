@@ -4,11 +4,16 @@ import ChatContainer from './components/Chat/ChatContainer'
 import AuditDashboard from './components/Monitoring/AuditDashboard'
 import MemoryView from './components/Memory/MemoryView'
 import SkillsView from './components/Skills/SkillsView'
+import AgentsView from './components/Agents/AgentsView'
+import SchedulerView from './components/Scheduler/SchedulerView'
+import WorkflowsView from './components/Workflows/WorkflowsView'
+import Dashboard from './components/Dashboard/Dashboard'
 import { api } from './services/api'
-import { Settings as SettingsIcon, Save, Loader2, Check, Key, Eye, EyeOff } from 'lucide-react'
+import { Settings as SettingsIcon, Save, Loader2, Check, Key, Eye, EyeOff, Mail, CheckCircle, XCircle, Globe } from 'lucide-react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
-type View = 'chat' | 'audit' | 'memory' | 'skills' | 'settings'
+type View = 'dashboard' | 'chat' | 'audit' | 'memory' | 'skills' | 'agents' | 'scheduler' | 'workflows' | 'settings'
 
 interface Settings {
   app_name: string
@@ -24,9 +29,21 @@ interface Settings {
   ollama_model?: string
   claude_model?: string
   openai_model?: string
+  // E-Mail
+  email_enabled?: boolean
+  imap_host?: string
+  imap_port?: string
+  imap_user?: string
+  imap_password_set?: boolean
+  smtp_host?: string
+  smtp_port?: string
+  smtp_user?: string
+  smtp_password_set?: boolean
+  smtp_from?: string
 }
 
 function SettingsView() {
+  const { t, i18n } = useTranslation()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -37,6 +54,19 @@ function SettingsView() {
   const [openaiKey, setOpenaiKey] = useState('')
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
+  // E-Mail
+  const [emailEnabled, setEmailEnabled] = useState(false)
+  const [imapHost, setImapHost] = useState('')
+  const [imapPort, setImapPort] = useState('993')
+  const [imapUser, setImapUser] = useState('')
+  const [imapPassword, setImapPassword] = useState('')
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState('587')
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [smtpFrom, setSmtpFrom] = useState('')
+  const [emailTestResult, setEmailTestResult] = useState<{ imap: boolean; smtp: boolean; imap_error?: string | null; smtp_error?: string | null } | null>(null)
+  const [emailTesting, setEmailTesting] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -49,7 +79,16 @@ function SettingsView() {
       setSettings(data)
       setProvider(data.llm_provider)
       setSystemPrompt(data.system_prompt || '')
-      // Don't load actual keys - just show if they're set
+      // E-Mail
+      setEmailEnabled(data.email_enabled || false)
+      setImapHost(data.imap_host || '')
+      setImapPort(data.imap_port || '993')
+      setImapUser(data.imap_user || '')
+      setSmtpHost(data.smtp_host || '')
+      setSmtpPort(data.smtp_port || '587')
+      setSmtpUser(data.smtp_user || '')
+      setSmtpFrom(data.smtp_from || '')
+      // Don't load actual keys/passwords - just show if they're set
     } catch (error) {
       console.error('Failed to load settings:', error)
     }
@@ -61,20 +100,36 @@ function SettingsView() {
     try {
       const updates: Record<string, string> = {
         llm_provider: provider,
-        system_prompt: systemPrompt
+        system_prompt: systemPrompt,
+        email_enabled: emailEnabled ? 'true' : 'false',
+        imap_host: imapHost,
+        imap_port: imapPort,
+        imap_user: imapUser,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_user: smtpUser,
+        smtp_from: smtpFrom,
       }
-      // Only send API keys if they were changed (not empty)
+      // Only send API keys/passwords if they were changed (not empty)
       if (anthropicKey) {
         updates.anthropic_api_key = anthropicKey
       }
       if (openaiKey) {
         updates.openai_api_key = openaiKey
       }
+      if (imapPassword) {
+        updates.imap_password = imapPassword
+      }
+      if (smtpPassword) {
+        updates.smtp_password = smtpPassword
+      }
       await api.updateSettings(updates)
       setSaved(true)
-      // Clear the key inputs after save
+      // Clear the key/password inputs after save
       setAnthropicKey('')
       setOpenaiKey('')
+      setImapPassword('')
+      setSmtpPassword('')
       // Reload settings to get updated masked keys
       await loadSettings()
       setTimeout(() => setSaved(false), 2000)
@@ -97,13 +152,13 @@ function SettingsView() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon className="w-8 h-8 text-nv-accent" />
-          <h1 className="text-2xl font-bold">Einstellungen</h1>
+          <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
         </div>
 
         <div className="space-y-8">
           {/* LLM Provider */}
           <div className="bg-nv-black-200 rounded-xl p-6 border border-nv-gray-light">
-            <h2 className="text-lg font-semibold mb-4">LLM Provider</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('settings.llmProvider')}</h2>
             <div className="flex gap-3">
               {settings?.available_providers.map((p) => (
                 <button
@@ -121,9 +176,9 @@ function SettingsView() {
               ))}
             </div>
             <p className="text-sm text-gray-500 mt-3">
-              {provider === 'ollama' && '🖥️ Lokales LLM - 100% privat, keine API-Kosten'}
-              {provider === 'claude' && '🤖 Anthropic Claude API - beste Qualität'}
-              {provider === 'openai' && '⚡ OpenAI GPT API - schnell und zuverlässig'}
+              {provider === 'ollama' && t('settings.providerOllama')}
+              {provider === 'claude' && t('settings.providerClaude')}
+              {provider === 'openai' && t('settings.providerOpenai')}
             </p>
           </div>
 
@@ -136,7 +191,7 @@ function SettingsView() {
               </div>
               {settings?.anthropic_api_key_set && (
                 <p className="text-sm text-green-400 mb-3">
-                  ✓ API Key gesetzt: {settings.anthropic_api_key_masked}
+                  ✓ {t('settings.apiKeySet', { masked: settings.anthropic_api_key_masked })}
                 </p>
               )}
               <div className="relative">
@@ -144,7 +199,7 @@ function SettingsView() {
                   type={showAnthropicKey ? 'text' : 'password'}
                   value={anthropicKey}
                   onChange={(e) => setAnthropicKey(e.target.value)}
-                  placeholder={settings?.anthropic_api_key_set ? 'Neuen Key eingeben zum Ändern...' : 'sk-ant-api...'}
+                  placeholder={settings?.anthropic_api_key_set ? t('settings.changeKey') : 'sk-ant-api...'}
                   className="w-full px-4 py-3 pr-12 bg-nv-black border border-nv-gray-light rounded-lg
                              text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent font-mono"
                 />
@@ -157,7 +212,7 @@ function SettingsView() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Hole deinen API Key von{' '}
+                {t('settings.getKeyAnthropic')}{' '}
                 <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer"
                    className="text-nv-accent hover:underline">console.anthropic.com</a>
               </p>
@@ -173,7 +228,7 @@ function SettingsView() {
               </div>
               {settings?.openai_api_key_set && (
                 <p className="text-sm text-green-400 mb-3">
-                  ✓ API Key gesetzt: {settings.openai_api_key_masked}
+                  ✓ {t('settings.apiKeySet', { masked: settings.openai_api_key_masked })}
                 </p>
               )}
               <div className="relative">
@@ -181,7 +236,7 @@ function SettingsView() {
                   type={showOpenaiKey ? 'text' : 'password'}
                   value={openaiKey}
                   onChange={(e) => setOpenaiKey(e.target.value)}
-                  placeholder={settings?.openai_api_key_set ? 'Neuen Key eingeben zum Ändern...' : 'sk-...'}
+                  placeholder={settings?.openai_api_key_set ? t('settings.changeKey') : 'sk-...'}
                   className="w-full px-4 py-3 pr-12 bg-nv-black border border-nv-gray-light rounded-lg
                              text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent font-mono"
                 />
@@ -194,7 +249,7 @@ function SettingsView() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Hole deinen API Key von{' '}
+                {t('settings.getKeyOpenai')}{' '}
                 <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer"
                    className="text-nv-accent hover:underline">platform.openai.com</a>
               </p>
@@ -203,11 +258,11 @@ function SettingsView() {
 
           {/* System Prompt */}
           <div className="bg-nv-black-200 rounded-xl p-6 border border-nv-gray-light">
-            <h2 className="text-lg font-semibold mb-4">System Prompt</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('settings.systemPrompt')}</h2>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Optionaler System-Prompt für alle Konversationen..."
+              placeholder={t('settings.systemPromptPlaceholder')}
               rows={5}
               className="w-full px-4 py-3 bg-nv-black border border-nv-gray-light rounded-lg
                          text-white placeholder-gray-500 focus:outline-none focus:border-nv-accent
@@ -215,20 +270,167 @@ function SettingsView() {
             />
           </div>
 
+          {/* E-Mail Integration */}
+          <div className="bg-nv-black-200 rounded-xl p-6 border border-nv-gray-light">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="w-5 h-5 text-nv-accent" />
+              <h2 className="text-lg font-semibold">{t('settings.email')}</h2>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={emailEnabled}
+                onChange={(e) => setEmailEnabled(e.target.checked)}
+                className="accent-nv-accent w-4 h-4"
+              />
+              <span className="text-sm font-medium">{t('settings.emailEnabled')}</span>
+            </label>
+
+            {emailEnabled && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">{t('settings.imapTitle')}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text" value={imapHost} onChange={(e) => setImapHost(e.target.value)}
+                      placeholder="imap.example.com"
+                      className="col-span-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                    />
+                    <input
+                      type="text" value={imapPort} onChange={(e) => setImapPort(e.target.value)}
+                      placeholder="993"
+                      className="px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                    />
+                  </div>
+                  <input
+                    type="text" value={imapUser} onChange={(e) => setImapUser(e.target.value)}
+                    placeholder="user@example.com"
+                    className="w-full mt-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                  />
+                  <input
+                    type="password" value={imapPassword} onChange={(e) => setImapPassword(e.target.value)}
+                    placeholder={settings?.imap_password_set ? t('settings.imapPasswordSet') : t('settings.imapPasswordPlaceholder')}
+                    className="w-full mt-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">{t('settings.smtpTitle')}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text" value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="smtp.example.com"
+                      className="col-span-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                    />
+                    <input
+                      type="text" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)}
+                      placeholder="587"
+                      className="px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                    />
+                  </div>
+                  <input
+                    type="text" value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)}
+                    placeholder="user@example.com"
+                    className="w-full mt-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                  />
+                  <input
+                    type="password" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)}
+                    placeholder={settings?.smtp_password_set ? t('settings.smtpPasswordSet') : t('settings.smtpPasswordPlaceholder')}
+                    className="w-full mt-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                  />
+                  <input
+                    type="text" value={smtpFrom} onChange={(e) => setSmtpFrom(e.target.value)}
+                    placeholder={t('settings.smtpFromPlaceholder')}
+                    className="w-full mt-2 px-3 py-2 bg-nv-black border border-nv-gray-light rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-nv-accent"
+                  />
+                </div>
+
+                {/* Test Button */}
+                <button
+                  onClick={async () => {
+                    setEmailTesting(true)
+                    setEmailTestResult(null)
+                    try {
+                      const result = await api.testEmailConnection()
+                      setEmailTestResult(result)
+                    } catch {
+                      setEmailTestResult({ imap: false, smtp: false, imap_error: t('settings.testError'), smtp_error: t('settings.testError') })
+                    }
+                    setEmailTesting(false)
+                  }}
+                  disabled={emailTesting}
+                  className="px-4 py-2 bg-nv-black-lighter text-sm text-gray-300 hover:text-white border border-nv-gray-light rounded-lg transition-all flex items-center gap-2"
+                >
+                  {emailTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                  {t('settings.testConnection')}
+                </button>
+
+                {emailTestResult && (
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      {emailTestResult.imap ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
+                      <span>IMAP: {emailTestResult.imap ? t('settings.connected') : emailTestResult.imap_error || t('settings.testFailed')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {emailTestResult.smtp ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
+                      <span>SMTP: {emailTestResult.smtp ? t('settings.connected') : emailTestResult.smtp_error || t('settings.testFailed')}</span>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500">
+                  {t('settings.emailReadonly')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Language Switcher */}
+          <div className="bg-nv-black-200 rounded-xl p-6 border border-nv-gray-light">
+            <div className="flex items-center gap-2 mb-4">
+              <Globe className="w-5 h-5 text-nv-accent" />
+              <h2 className="text-lg font-semibold">{t('settings.language')}</h2>
+            </div>
+            <div className="flex gap-3">
+              {[
+                { code: 'de', label: 'Deutsch' },
+                { code: 'en', label: 'English' },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.code)
+                    localStorage.setItem('axon-language', lang.code)
+                    api.updateSettings({ language: lang.code })
+                  }}
+                  className={clsx(
+                    'px-5 py-3 rounded-lg text-sm font-medium transition-all',
+                    i18n.language === lang.code
+                      ? 'bg-nv-accent text-nv-black shadow-nv-glow'
+                      : 'bg-nv-black-lighter text-gray-400 hover:text-white border border-nv-gray-light'
+                  )}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* App Info */}
           <div className="bg-nv-black-200 rounded-xl p-6 border border-nv-gray-light">
-            <h2 className="text-lg font-semibold mb-4">Über Axon</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('settings.about')}</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Name</span>
+                <span className="text-gray-500">{t('settings.appName')}</span>
                 <span>{settings?.app_name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Version</span>
+                <span className="text-gray-500">{t('settings.version')}</span>
                 <span className="font-mono">{settings?.app_version}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Aktiver Provider</span>
+                <span className="text-gray-500">{t('settings.activeProvider')}</span>
                 <span className="text-nv-accent">{settings?.llm_provider}</span>
               </div>
             </div>
@@ -249,7 +451,7 @@ function SettingsView() {
             ) : (
               <Save className="w-5 h-5" />
             )}
-            {saved ? 'Gespeichert!' : 'Einstellungen speichern'}
+            {saved ? t('settings.saved') : t('settings.save')}
           </button>
         </div>
       </div>
@@ -258,9 +460,10 @@ function SettingsView() {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>('chat')
+  const [currentView, setCurrentView] = useState<View>('dashboard')
   const [currentSession, setCurrentSession] = useState<string | null>(null)
   const [loadConversationId, setLoadConversationId] = useState<string | null>(null)
+  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
 
   const handleSelectConversation = (id: string) => {
     setCurrentSession(id)
@@ -285,12 +488,17 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
+        {currentView === 'dashboard' && (
+          <Dashboard />
+        )}
         {currentView === 'chat' && (
           <ChatContainer
-            key={currentSession || 'new'}
+            key={`${currentSession || 'new'}-${currentAgentId || 'default'}`}
             sessionId={currentSession}
             onSessionChange={setCurrentSession}
             loadConversationId={loadConversationId}
+            agentId={currentAgentId}
+            onAgentChange={setCurrentAgentId}
           />
         )}
         {currentView === 'audit' && (
@@ -301,6 +509,15 @@ function App() {
         )}
         {currentView === 'skills' && (
           <SkillsView />
+        )}
+        {currentView === 'agents' && (
+          <AgentsView />
+        )}
+        {currentView === 'scheduler' && (
+          <SchedulerView />
+        )}
+        {currentView === 'workflows' && (
+          <WorkflowsView />
         )}
         {currentView === 'settings' && (
           <SettingsView />

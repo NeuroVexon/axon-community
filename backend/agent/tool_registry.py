@@ -3,8 +3,9 @@ Axon by NeuroVexon - Tool Registry
 """
 
 from enum import Enum
-from typing import Callable, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
+from core.i18n import get_language
 
 
 class RiskLevel(str, Enum):
@@ -24,6 +25,12 @@ class ToolDefinition(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+    def get_description(self, lang: str = None) -> str:
+        """Return description in the given language"""
+        if lang is None:
+            lang = get_language()
+        return self.description_de if lang == "de" else self.description
 
 
 class ToolRegistry:
@@ -141,7 +148,43 @@ class ToolRegistry:
             requires_approval=False
         ))
 
-        # code_execute: Entfernt in v1.0 — Docker-Sandbox geplant für v1.1
+        # E-Mail Tools
+        self.register(ToolDefinition(
+            name="email_inbox",
+            description="Read unread emails, search inbox, or read a specific email. Actions: 'unread', 'search', 'read'",
+            description_de="Liest ungelesene E-Mails, durchsucht den Posteingang oder liest eine bestimmte E-Mail",
+            parameters={
+                "action": {"type": "string", "description": "Action: 'unread', 'search', or 'read'", "required": True},
+                "query": {"type": "string", "description": "Search query (for action=search)"},
+                "uid": {"type": "string", "description": "Email UID (for action=read)"},
+                "limit": {"type": "integer", "description": "Max results", "default": 10}
+            },
+            risk_level=RiskLevel.MEDIUM
+        ))
+
+        self.register(ToolDefinition(
+            name="email_send",
+            description="Send an email. ALWAYS requires approval — shows recipient, subject, and body before sending.",
+            description_de="Sendet eine E-Mail (IMMER mit Genehmigung)",
+            parameters={
+                "to": {"type": "string", "description": "Recipient email address", "required": True},
+                "subject": {"type": "string", "description": "Email subject", "required": True},
+                "body": {"type": "string", "description": "Email body (plain text)", "required": True}
+            },
+            risk_level=RiskLevel.HIGH
+        ))
+
+        # Code Execution (Docker Sandbox)
+        self.register(ToolDefinition(
+            name="code_execute",
+            description="Execute Python code in a secure Docker sandbox (no network, memory limited, read-only)",
+            description_de="Fuehrt Python-Code in einer sicheren Docker-Sandbox aus (kein Netzwerk, isoliert)",
+            parameters={
+                "code": {"type": "string", "description": "Python code to execute", "required": True},
+                "timeout": {"type": "integer", "description": "Timeout in seconds (max 60)", "default": 30}
+            },
+            risk_level=RiskLevel.HIGH
+        ))
 
     def register(self, tool: ToolDefinition):
         """Register a tool"""

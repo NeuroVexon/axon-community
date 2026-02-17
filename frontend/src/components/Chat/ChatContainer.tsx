@@ -1,16 +1,35 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 import ToolApprovalModal from '../Tools/ToolApprovalModal'
 import { useChat } from '../../hooks/useChat'
+import { api } from '../../services/api'
+import { Bot, ChevronDown } from 'lucide-react'
+import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
+
+interface AgentOption {
+  id: string
+  name: string
+  description: string
+  is_default: boolean
+}
 
 interface ChatContainerProps {
   sessionId: string | null
   onSessionChange: (id: string) => void
   loadConversationId?: string | null
+  agentId?: string | null
+  onAgentChange?: (id: string | null) => void
 }
 
-export default function ChatContainer({ sessionId, onSessionChange, loadConversationId }: ChatContainerProps) {
+export default function ChatContainer({
+  sessionId,
+  onSessionChange,
+  loadConversationId,
+  agentId,
+  onAgentChange,
+}: ChatContainerProps) {
   const {
     messages,
     isLoading,
@@ -19,7 +38,22 @@ export default function ChatContainer({ sessionId, onSessionChange, loadConversa
     approveToolCall,
     rejectToolCall,
     loadConversation,
-  } = useChat(sessionId, onSessionChange)
+  } = useChat(sessionId, onSessionChange, agentId)
+
+  const [agents, setAgents] = useState<AgentOption[]>([])
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false)
+  const { t } = useTranslation()
+
+  useEffect(() => {
+    api.getAgents().then(data => {
+      setAgents(data.filter(a => a.enabled))
+      // Select default agent if none selected
+      if (!agentId) {
+        const defaultAgent = data.find(a => a.is_default && a.enabled)
+        if (defaultAgent) onAgentChange?.(defaultAgent.id)
+      }
+    }).catch(() => {})
+  }, [])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -35,8 +69,48 @@ export default function ChatContainer({ sessionId, onSessionChange, loadConversa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const selectedAgent = agents.find(a => a.id === agentId)
+
   return (
     <div className="h-full flex flex-col bg-nv-black-100">
+      {/* Agent Switcher Header */}
+      {agents.length > 1 && (
+        <div className="px-6 py-3 border-b border-nv-gray-light bg-nv-black flex items-center">
+          <div className="relative">
+            <button
+              onClick={() => setShowAgentDropdown(!showAgentDropdown)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-nv-black-lighter
+                         border border-nv-gray-light hover:border-nv-accent transition-all text-sm"
+            >
+              <Bot className="w-4 h-4 text-nv-accent" />
+              <span>{selectedAgent?.name || 'Agent'}</span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
+            {showAgentDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-64 bg-nv-black-200 border border-nv-gray-light
+                              rounded-lg shadow-xl z-50 overflow-hidden">
+                {agents.map(agent => (
+                  <button
+                    key={agent.id}
+                    onClick={() => {
+                      onAgentChange?.(agent.id)
+                      setShowAgentDropdown(false)
+                    }}
+                    className={clsx(
+                      'w-full px-4 py-3 text-left hover:bg-nv-black-lighter transition-all',
+                      agent.id === agentId && 'bg-nv-accent/10 border-l-2 border-nv-accent'
+                    )}
+                  >
+                    <div className="text-sm font-medium">{agent.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{agent.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 ? (
@@ -54,15 +128,15 @@ export default function ChatContainer({ sessionId, onSessionChange, loadConversa
                 <path d="M2 12l10 5 10-5" />
               </svg>
             </div>
-            <h2 className="text-2xl font-display font-bold mb-2">Willkommen bei Axon</h2>
+            <h2 className="text-2xl font-display font-bold mb-2">{t('chat.welcome')}</h2>
             <p className="text-gray-500 max-w-md">
-              Dein KI-Assistent mit voller Kontrolle. Jede Aktion wird dir zur Bestätigung vorgelegt.
+              {t('chat.welcomeSub')}
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-              <ExamplePrompt text="Lies die Datei config.json" onClick={sendMessage} />
-              <ExamplePrompt text="Suche im Web nach Python Tutorials" onClick={sendMessage} />
-              <ExamplePrompt text="Liste alle Dateien im aktuellen Ordner" onClick={sendMessage} />
-              <ExamplePrompt text="Führe den Befehl 'ls -la' aus" onClick={sendMessage} />
+              <ExamplePrompt text={t('chat.example1')} onClick={sendMessage} />
+              <ExamplePrompt text={t('chat.example2')} onClick={sendMessage} />
+              <ExamplePrompt text={t('chat.example3')} onClick={sendMessage} />
+              <ExamplePrompt text={t('chat.example4')} onClick={sendMessage} />
             </div>
           </div>
         ) : (
@@ -76,6 +150,7 @@ export default function ChatContainer({ sessionId, onSessionChange, loadConversa
         <MessageInput
           onSend={sendMessage}
           disabled={isLoading || pendingApproval !== null}
+          conversationId={sessionId}
         />
       </div>
 

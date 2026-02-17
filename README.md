@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/github/v/release/neurovexon/axon-community?color=00d4ff" alt="Release">
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-BSL%201.1-blue" alt="License">
+    <img src="https://img.shields.io/badge/license-Apache%202.0-green" alt="License">
   </a>
   <a href="https://github.com/neurovexon/axon-community/stargazers">
     <img src="https://img.shields.io/github/stars/neurovexon/axon-community?style=social" alt="Stars">
@@ -76,7 +76,7 @@
 | Persistentes Memory | Ja (DB-basiert) | Nein | Nein |
 | Skills/Plugins | Ja, mit Sicherheits-Gate | Ja, ohne Gate | Nein |
 | Messenger-Bots | Telegram + Discord | Nein | Nein |
-| Open Source | BSL 1.1 | Proprietär | Variiert |
+| Open Source | Apache 2.0 | Proprietär | Variiert |
 | DSGVO-konform | Ja | Nein | Variiert |
 
 ## Schnellstart
@@ -199,28 +199,31 @@ Beiträge sind willkommen! Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Lizenz
 
-**Business Source License 1.1** - siehe [LICENSE](LICENSE)
+**Apache License 2.0** — siehe [LICENSE](LICENSE)
+
+Du kannst AXON frei nutzen, modifizieren, verbreiten und kommerziell einsetzen.
+Einzige Bedingung: Copyright-Hinweis und Lizenztext beibehalten.
 
 | Nutzung | Erlaubt? |
 |---------|----------|
 | Private Nutzung | Ja |
-| Lernen & Forschung | Ja |
-| Evaluation (90 Tage) | Ja |
-| Non-Profit (bis 5 User) | Ja |
-| Forken & Pull Requests | Ja |
-| Produktive Geschäftsnutzung | Lizenz erforderlich |
-| SaaS / Hosting | Lizenz erforderlich |
-
-**Ab Februar 2030:** Apache License 2.0
+| Kommerzielle Nutzung | Ja |
+| Modifikation | Ja |
+| Distribution | Ja |
+| Patent-Nutzung | Ja |
+| Haftungsausschluss | Software wird "as is" bereitgestellt |
 
 ## Enterprise
 
-Für kommerzielle Nutzung:
+AXON Community Edition ist frei nutzbar — auch kommerziell.
 
-- **Axon Pro** - Für Einzelpersonen und kleine Teams
-- **Axon Enterprise** - Für Unternehmen
+Für erweiterte Anforderungen bietet NeuroVexon:
 
-[neurovexon.de/pricing](https://neurovexon.de/pricing)
+- **NeuroVexon Assistant** — Enterprise KI-Plattform mit RAG, Multi-User, Admin-Panels
+- **Support & SLA** — Professioneller Support für produktive Umgebungen
+- **On-Premise Deployment** — Beratung und Einrichtung
+
+> [neurovexon.com](https://neurovexon.com)
 
 ## Community
 
