@@ -17,6 +17,13 @@ from db.models import (
     ScheduledTask, Workflow, WorkflowRun, UploadedDocument, Settings
 )
 
+# Check if embeddings module exists (v2.0 with semantic search)
+try:
+    import agent.embeddings
+    HAS_EMBEDDINGS_MODULE = True
+except ImportError:
+    HAS_EMBEDDINGS_MODULE = False
+
 
 @pytest.fixture
 async def db_engine():
@@ -46,11 +53,15 @@ async def db(db_engine):
 
 @pytest.fixture
 def mock_embedding():
-    """Mock the embedding provider to avoid Ollama dependency"""
-    with patch("agent.memory.embedding_provider") as mock:
-        mock.embed = AsyncMock(return_value=None)
-        mock.is_available = AsyncMock(return_value=False)
-        yield mock
+    """Mock the embedding provider to avoid Ollama dependency.
+    Only patches if the embeddings module exists (v2.0+)."""
+    if HAS_EMBEDDINGS_MODULE:
+        with patch("agent.memory.embedding_provider") as mock:
+            mock.embed = AsyncMock(return_value=None)
+            mock.is_available = AsyncMock(return_value=False)
+            yield mock
+    else:
+        yield None
 
 
 @pytest.fixture

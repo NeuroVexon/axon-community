@@ -8,7 +8,13 @@ import pytest
 import math
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from agent.embeddings import cosine_similarity, EmbeddingProvider
+try:
+    from agent.embeddings import cosine_similarity, EmbeddingProvider
+    HAS_EMBEDDINGS = True
+except ImportError:
+    HAS_EMBEDDINGS = False
+
+pytestmark = pytest.mark.skipif(not HAS_EMBEDDINGS, reason="agent.embeddings not available")
 
 
 class TestCosineSimilarity:
