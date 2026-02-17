@@ -404,8 +404,18 @@ def run_bot():
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
+_running_app = None
+
+
+def get_running_app():
+    """Return the running Telegram Application instance (for shutdown)"""
+    return _running_app
+
+
 async def start_bot_async():
     """Start bot in background (called from main.py lifespan)"""
+    global _running_app
+
     if not HAS_TELEGRAM:
         return
 
@@ -427,6 +437,7 @@ async def start_bot_async():
     await app.initialize()
     await app.start()
     await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+    _running_app = app
 
 
 if __name__ == "__main__":

@@ -67,19 +67,27 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             kwargs["tools"] = tools
 
         response = await client.chat.completions.create(**kwargs)
+
+        if not response.choices:
+            return LLMResponse(content=None, tool_calls=None, finish_reason="stop")
+
         message = response.choices[0].message
 
         # Parse tool calls
         tool_calls = None
         if message.tool_calls:
-            tool_calls = [
-                ToolCall(
+            tool_calls = []
+            for tc in message.tool_calls:
+                try:
+                    params = json.loads(tc.function.arguments)
+                except (json.JSONDecodeError, TypeError):
+                    params = {}
+                    logger.warning(f"Failed to parse tool arguments for {tc.function.name}")
+                tool_calls.append(ToolCall(
                     id=tc.id,
                     name=tc.function.name,
-                    parameters=json.loads(tc.function.arguments)
-                )
-                for tc in message.tool_calls
-            ]
+                    parameters=params
+                ))
 
         return LLMResponse(
             content=message.content,
@@ -107,7 +115,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         stream = await client.chat.completions.create(**kwargs)
 
         async for chunk in stream:
-            if chunk.choices[0].delta.content:
+            if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
     async def health_check(self) -> bool:

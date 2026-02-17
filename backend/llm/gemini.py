@@ -125,24 +125,28 @@ class GeminiProvider(BaseLLMProvider):
         tool_calls = None
 
         if response.candidates and response.candidates[0].content:
-            for part in response.candidates[0].content.parts:
-                if part.text:
-                    content = (content or "") + part.text
-                elif part.function_call:
-                    if tool_calls is None:
-                        tool_calls = []
-                    fc = part.function_call
-                    tool_calls.append(ToolCall(
-                        id=f"gemini_{len(tool_calls)}",
-                        name=fc.name,
-                        parameters=dict(fc.args) if fc.args else {}
-                    ))
+            parts = response.candidates[0].content.parts
+            if parts:
+                for part in parts:
+                    if part.text:
+                        content = (content or "") + part.text
+                    elif part.function_call:
+                        if tool_calls is None:
+                            tool_calls = []
+                        fc = part.function_call
+                        tool_calls.append(ToolCall(
+                            id=f"gemini_{len(tool_calls)}",
+                            name=fc.name,
+                            parameters=dict(fc.args) if fc.args else {}
+                        ))
 
         finish_reason = "stop"
         if response.candidates:
             fr = response.candidates[0].finish_reason
             if fr:
-                finish_reason = str(fr).lower()
+                # Gemini enum: e.g. FinishReason.STOP → extract name
+                fr_str = fr.name if hasattr(fr, "name") else str(fr)
+                finish_reason = fr_str.lower()
 
         return LLMResponse(
             content=content,
@@ -179,6 +183,20 @@ class GeminiProvider(BaseLLMProvider):
         config_kwargs = {}
         if system_instruction:
             config_kwargs["system_instruction"] = system_instruction
+
+        # Convert tools for streaming too
+        if tools:
+            gemini_fns = self._convert_tools_to_gemini(tools)
+            if gemini_fns:
+                from google.genai.types import FunctionDeclaration, Tool
+                declarations = []
+                for fn in gemini_fns:
+                    declarations.append(FunctionDeclaration(
+                        name=fn["name"],
+                        description=fn["description"],
+                        parameters=fn["parameters"]
+                    ))
+                config_kwargs["tools"] = [Tool(function_declarations=declarations)]
 
         config = types.GenerateContentConfig(**config_kwargs)
 

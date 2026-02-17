@@ -8,12 +8,17 @@ Fallback: Kein Embedding verfuegbar → ILIKE-Suche wie bisher.
 """
 
 import logging
+import time
 from typing import Optional
 import httpx
 
 from core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Cache TTL: re-check availability after 5 minutes if unavailable
+_CACHE_TTL_UNAVAILABLE = 300  # seconds
+_CACHE_TTL_AVAILABLE = 3600   # 1 hour for positive results
 
 
 class EmbeddingProvider:
@@ -23,11 +28,14 @@ class EmbeddingProvider:
         self.model = model
         self.base_url = settings.ollama_base_url
         self._available: Optional[bool] = None
+        self._checked_at: float = 0
 
     async def is_available(self) -> bool:
         """Check if the embedding model is available in Ollama"""
         if self._available is not None:
-            return self._available
+            ttl = _CACHE_TTL_AVAILABLE if self._available else _CACHE_TTL_UNAVAILABLE
+            if time.monotonic() - self._checked_at < ttl:
+                return self._available
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -42,6 +50,8 @@ class EmbeddingProvider:
             logger.debug(f"Embedding model check failed: {e}")
             self._available = False
 
+        self._checked_at = time.monotonic()
+
         if self._available:
             logger.info(f"Embedding model '{self.model}' verfuegbar")
         else:
@@ -52,6 +62,7 @@ class EmbeddingProvider:
     def reset_cache(self):
         """Reset availability cache (z.B. nach Model-Pull)"""
         self._available = None
+        self._checked_at = 0
 
     async def embed(self, text: str) -> Optional[list[float]]:
         """Generate embedding for a single text. Returns None if unavailable."""

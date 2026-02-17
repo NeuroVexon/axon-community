@@ -53,10 +53,13 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.outputs_dir, exist_ok=True)
 
     # Start Telegram Bot if enabled
+    _telegram_task = None
+    _telegram_app = None
     if settings.telegram_enabled and settings.telegram_bot_token:
         try:
-            from integrations.telegram import start_bot_async
-            asyncio.create_task(start_bot_async())
+            from integrations.telegram import start_bot_async, get_running_app
+            _telegram_task = asyncio.create_task(start_bot_async())
+            _telegram_app = get_running_app
             logger.info("Telegram Bot gestartet")
         except Exception as e:
             logger.warning(f"Telegram Bot konnte nicht gestartet werden: {e}")
@@ -69,6 +72,21 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    # Stop Telegram Bot
+    if _telegram_app:
+        try:
+            tg_app = _telegram_app()
+            if tg_app:
+                await tg_app.updater.stop()
+                await tg_app.stop()
+                await tg_app.shutdown()
+                logger.info("Telegram Bot gestoppt")
+        except Exception as e:
+            logger.warning(f"Telegram Bot Shutdown-Fehler: {e}")
+
+    if _telegram_task and not _telegram_task.done():
+        _telegram_task.cancel()
+
     from agent.scheduler import task_scheduler as ts
     ts.stop()
     logger.info("Shutting down Axon")
