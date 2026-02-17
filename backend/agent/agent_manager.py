@@ -76,7 +76,7 @@ class AgentManager:
         """Alle Agents auflisten"""
         query = select(Agent).order_by(Agent.is_default.desc(), Agent.name.asc())
         if enabled_only:
-            query = query.where(Agent.enabled == True)
+            query = query.where(Agent.enabled.is_(True))
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -87,7 +87,7 @@ class AgentManager:
     async def get_default_agent(self) -> Optional[Agent]:
         """Default-Agent holen"""
         result = await self.db.execute(
-            select(Agent).where(Agent.is_default == True).limit(1)
+            select(Agent).where(Agent.is_default.is_(True)).limit(1)
         )
         return result.scalar_one_or_none()
 

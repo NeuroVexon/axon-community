@@ -5,13 +5,12 @@ Koordiniert LLM, Tools und Permissions.
 """
 
 from typing import AsyncGenerator, Optional, Callable, Awaitable
-import asyncio
 import time
 import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .tool_registry import ToolRegistry, tool_registry, RiskLevel
+from .tool_registry import ToolRegistry, tool_registry
 from .permission_manager import PermissionManager, permission_manager, PermissionScope
 from .audit_logger import AuditLogger, AuditEventType
 from .tool_handlers import execute_tool, ToolExecutionError

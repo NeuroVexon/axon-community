@@ -13,7 +13,7 @@ import logging
 import struct
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 
 from db.models import Memory
 from agent.embeddings import embedding_provider, cosine_similarity
