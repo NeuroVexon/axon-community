@@ -641,15 +641,15 @@ def memory_list():
         return
 
     table = Table(title=s("memory_title"), border_style="cyan")
-    table.add_column("ID", style="dim", max_width=8)
+    table.add_column("ID", style="dim", no_wrap=True)
     table.add_column("Key", style="bold")
-    table.add_column("Content", max_width=50)
+    table.add_column("Content", max_width=40)
     table.add_column("Quelle")
     table.add_column("Kategorie")
 
     for m in data:
         table.add_row(
-            m["id"][:8],
+            m["id"],
             m["key"],
             m["content"][:50] + ("..." if len(m["content"]) > 50 else ""),
             m.get("source", "-"),
