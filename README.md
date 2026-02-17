@@ -243,6 +243,7 @@ Siehe [docs/CONFIGURATION.md](docs/CONFIGURATION.md) für alle Optionen.
 - [Skills](docs/SKILLS.md)
 - [Messenger Integration](docs/MESSENGER.md)
 - [Security](SECURITY.md)
+- [Testing](docs/TESTING.md)
 - [API Reference](docs/API.md)
 - [Changelog](CHANGELOG.md)
 - [Drittlizenzen](THIRD_PARTY_LICENSES.md)

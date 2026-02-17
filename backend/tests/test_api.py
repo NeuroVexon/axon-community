@@ -1,20 +1,31 @@
 """
 Axon by NeuroVexon - API Tests
+
+Require all backend dependencies installed.
+Run on server with: cd backend && pytest tests/test_api.py -v
 """
 
 import pytest
-from fastapi.testclient import TestClient
 import sys
 import os
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Skip all tests if full dependencies are not installed
+try:
+    from main import app
+    from fastapi.testclient import TestClient
+    HAS_DEPS = True
+except ImportError:
+    HAS_DEPS = False
+
+pytestmark = pytest.mark.skipif(not HAS_DEPS, reason="Server dependencies not installed")
+
 
 @pytest.fixture
 def client():
     """Create test client"""
-    from main import app
     return TestClient(app)
 
 
