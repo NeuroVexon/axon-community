@@ -36,7 +36,7 @@ Dieser Verhaltenskodex gilt in allen Community-Räumen und gilt auch, wenn eine 
 
 ## Durchsetzung
 
-Fälle von missbräuchlichem, belästigendem oder anderweitig inakzeptablem Verhalten können den für die Durchsetzung verantwortlichen Community-Führungspersonen unter conduct@neurovexon.de gemeldet werden.
+Fälle von missbräuchlichem, belästigendem oder anderweitig inakzeptablem Verhalten können den für die Durchsetzung verantwortlichen Community-Führungspersonen unter service@neurovexon.com gemeldet werden.
 
 Alle Beschwerden werden zeitnah und fair geprüft und untersucht.
 

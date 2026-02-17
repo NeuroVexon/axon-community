@@ -141,7 +141,7 @@ Mit deinem Beitrag stimmst du zu, dass dein Code unter der [Apache License 2.0](
 
 - GitHub Discussions für allgemeine Fragen
 - GitHub Issues für Bugs und Features
-- Email: contribute@neurovexon.de
+- Email: service@neurovexon.com
 
 ---
 
