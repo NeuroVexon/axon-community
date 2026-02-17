@@ -15,7 +15,7 @@ Wir nehmen die Sicherheit von Axon sehr ernst. Wenn du eine Sicherheitslücke fi
 
 **Bitte erstelle KEIN öffentliches GitHub Issue für Sicherheitslücken.**
 
-Stattdessen sende eine E-Mail an: **security@neurovexon.de**
+Stattdessen sende eine E-Mail an: **service@neurovexon.com**
 
 Bitte füge folgende Informationen hinzu:
 
