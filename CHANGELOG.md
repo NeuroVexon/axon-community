@@ -1,190 +1,190 @@
 # Changelog
 
-Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert.
+All notable changes to this project are documented in this file.
 
-Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
-und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Geplant
-- Multi-User Support mit Rollen und Berechtigungen
-- RAG / Vektor-Suche ueber Dokumente
+### Planned
+- Multi-user support with roles and permissions
+- RAG / vector search over documents
 - Voice Input/Output
 - Mobile App (React Native)
-- Plugin-Marketplace
+- Plugin Marketplace
 
 ## [2.0.0] - 2026-02-17
 
 ### Added
 
-- **Multi-Agent System** — Mehrere Agents mit eigenen Rollen, Permissions und Modellen
-  - 3 Default-Agents: Assistent (alle Tools), Recherche (Web-fokussiert), System (Shell)
-  - Per-Agent: erlaubte Tools, Auto-Approve-Liste, Risiko-Level
-  - Agent-Switcher im Chat, Agent-Editor im Frontend
-  - API: CRUD unter `/api/v1/agents`
+- **Multi-Agent System** — Multiple agents with their own roles, permissions, and models
+  - 3 default agents: Assistant (all tools), Research (web-focused), System (shell)
+  - Per-agent: allowed tools, auto-approve list, risk level
+  - Agent switcher in chat, agent editor in frontend
+  - API: CRUD under `/api/v1/agents`
 
-- **Scheduled Tasks** — Proaktive Aufgaben mit Cron und Approval-Gate
-  - APScheduler-basiert mit Cron-Expressions
-  - Approval ueber Web/Telegram/Discord vor Ausfuehrung
-  - Sicherheit: Max 10 aktive Tasks, 5min Timeout, max 1/min
-  - API: CRUD + manueller Run unter `/api/v1/tasks`
+- **Scheduled Tasks** — Proactive tasks with cron and approval gate
+  - APScheduler-based with cron expressions
+  - Approval via Web/Telegram/Discord before execution
+  - Security: Max 10 active tasks, 5min timeout, max 1/min
+  - API: CRUD + manual run under `/api/v1/tasks`
 
-- **E-Mail Integration** — IMAP/SMTP mit bewussten Einschraenkungen
-  - Lesen: Ungelesene auflisten, suchen, einzelne lesen
-  - Senden: Immer mit Approval (zeigt Empfaenger + Text)
-  - Bewusst NICHT: delete, move, mark_as_read — Axon veraendert den Posteingang nicht
-  - Verschluesselte Credentials in DB
+- **Email Integration** — IMAP/SMTP with deliberate restrictions
+  - Read: List unread, search, read individual emails
+  - Send: Always with approval (shows recipient + text)
+  - Deliberately NOT: delete, move, mark_as_read — Axon does not modify the inbox
+  - Encrypted credentials in DB
 
-- **Workflow-Chains** — Mehrstufige Ablaeufe mit Template-Variablen
-  - Steps mit `{{variable}}` Kontext-Weitergabe
-  - Trigger-Phrases fuer automatische Aktivierung
-  - Approval-Modes: each_step / once_at_start / never
-  - API: CRUD + Run + History unter `/api/v1/workflows`
+- **Workflow Chains** — Multi-step processes with template variables
+  - Steps with `{{variable}}` context passing
+  - Trigger phrases for automatic activation
+  - Approval modes: each_step / once_at_start / never
+  - API: CRUD + Run + History under `/api/v1/workflows`
 
-- **MCP-Server** — Axon als kontrollierter Tool-Provider fuer externe AI-Clients
-  - JSON-RPC 2.0 Protokoll (initialize, tools/list, tools/call)
-  - SSE-Transport mit Bearer Token Auth
-  - Tool-Calls laufen durch Axon Approval-System
-  - Kompatibel mit Claude Desktop, Cursor, etc.
+- **MCP Server** — Axon as a controlled tool provider for external AI clients
+  - JSON-RPC 2.0 protocol (initialize, tools/list, tools/call)
+  - SSE transport with Bearer Token Auth
+  - Tool calls go through the Axon approval system
+  - Compatible with Claude Desktop, Cursor, etc.
   - Endpoint: `GET /mcp/v1/sse`
 
-- **Dashboard & Analytics** — Admin-Uebersicht mit Kernmetriken
+- **Dashboard & Analytics** — Admin overview with key metrics
   - Overview: Conversations, Messages, Agents, Tool Calls, Approval Rate
-  - Tool-Statistiken: Nutzung, Fehlerrate, Ausfuehrungszeit
-  - Timeline: 30-Tage Verlauf
-  - Agent-Statistiken
-  - API unter `/api/v1/analytics`
+  - Tool statistics: Usage, error rate, execution time
+  - Timeline: 30-day history
+  - Agent statistics
+  - API under `/api/v1/analytics`
 
-- **Code-Sandbox** — Docker-basierte Code-Ausfuehrung
-  - Netzwerk-Isolation (`--network none`)
-  - Resource-Limits: 256MB RAM, 0.5 CPU, 60s Timeout
-  - Read-only Filesystem, kein Host-Zugriff
-  - `code_execute` Tool zurueck mit risk_level: high
+- **Code Sandbox** — Docker-based code execution
+  - Network isolation (`--network none`)
+  - Resource limits: 256MB RAM, 0.5 CPU, 60s timeout
+  - Read-only filesystem, no host access
+  - `code_execute` tool returned with risk_level: high
 
-- **Dokument-Upload** — Dateien hochladen und im Chat analysieren
-  - PDF (PyMuPDF), Text, Code, CSV, Bilder
-  - Max 10 MB, automatische Text-Extraktion
-  - Context-Injection in Agent-Prompt
-  - Drag & Drop im Frontend
+- **Document Upload** — Upload files and analyze them in chat
+  - PDF (PyMuPDF), text, code, CSV, images
+  - Max 10 MB, automatic text extraction
+  - Context injection into agent prompt
+  - Drag & drop in frontend
   - API: `POST /api/v1/upload`
 
-- **CLI** — Terminal-Steuerung fuer Power-User
-  - SSE-Streaming mit Live-Textausgabe
-  - Tool-Approval direkt im Terminal
-  - Interaktiver REPL-Modus mit persistenter Session
-  - Pipe-Support: `cat datei.txt | axon chat`
+- **CLI** — Terminal control for power users
+  - SSE streaming with live text output
+  - Tool approval directly in terminal
+  - Interactive REPL mode with persistent session
+  - Pipe support: `cat datei.txt | axon chat`
   - Commands: chat, agents, memory, config, status, version
-  - Standalone HTTP-Client (typer + httpx + rich)
-  - Cross-Platform: Windows, macOS, Linux
+  - Standalone HTTP client (typer + httpx + rich)
+  - Cross-platform: Windows, macOS, Linux
 
-- **6 LLM-Provider** — Ollama, Claude, OpenAI, Gemini, Groq, OpenRouter
-  - Runtime-Switching ueber Settings
-  - Per-Agent Model-Konfiguration
-  - Health-Check fuer alle Provider
+- **6 LLM Providers** — Ollama, Claude, OpenAI, Gemini, Groq, OpenRouter
+  - Runtime switching via Settings
+  - Per-agent model configuration
+  - Health check for all providers
 
-- **i18n** — Deutsch + Englisch im Frontend und CLI
+- **i18n** — German + English in frontend and CLI
 
 ### Changed
-- Agent-Orchestrator nutzt per-Agent Permissions und Auto-Approve
-- Chat-Endpoint akzeptiert `agent_id` Parameter
-- Frontend: Sidebar mit Dashboard, Agents, Workflows, Skills, Zeitplan
-- Telegram/Discord: `/agent` und `/agents` Commands
+- Agent orchestrator uses per-agent permissions and auto-approve
+- Chat endpoint accepts `agent_id` parameter
+- Frontend: Sidebar with Dashboard, Agents, Workflows, Skills, Schedule
+- Telegram/Discord: `/agent` and `/agents` commands
 
 ### Security
-- Docker-Sandbox: Netzwerk-Isolation, Memory-Limits, Read-only FS
-- MCP-Server: Bearer Token Auth + Rate Limiting
-- E-Mail: Kein Delete/Move/Mark — nur lesen und senden
-- Scheduled Tasks: Max 10, Timeout 5min, Audit-Trail
-- Workflows: Stopp bei Fehler, Audit-Trail pro Step
+- Docker sandbox: Network isolation, memory limits, read-only FS
+- MCP server: Bearer Token Auth + Rate Limiting
+- Email: No delete/move/mark — read and send only
+- Scheduled tasks: Max 10, timeout 5min, audit trail
+- Workflows: Stop on error, audit trail per step
 
 ## [1.1.0] - 2026-02-16
 
 ### Added
-- **Persistentes Memory** — KI merkt sich Fakten über Konversationen hinweg
-  - Memory-Tools: `memory_save`, `memory_search`, `memory_delete`
-  - Memory wird automatisch in den System-Prompt injiziert
-  - Frontend: Gedächtnis-View mit Suche, Kategorien, CRUD
-  - API: Vollständige CRUD-Endpoints unter `/api/v1/memory`
+- **Persistent Memory** — AI remembers facts across conversations
+  - Memory tools: `memory_save`, `memory_search`, `memory_delete`
+  - Memory is automatically injected into the system prompt
+  - Frontend: Memory view with search, categories, CRUD
+  - API: Full CRUD endpoints under `/api/v1/memory`
 
-- **Skills System** — Erweiterbare Fähigkeiten mit Sicherheits-Gate
-  - Plugin-basierte Architektur (`backend/skills/`)
-  - SHA-256 Hash-Prüfung bei jedem Laden
-  - Automatische Revocation bei Dateiänderungen
-  - Frontend: Skills-View mit Approve/Toggle/Delete
-  - 3 mitgelieferte Skills: `summarize`, `word_count`, `json_formatter`
-  - Dokumentation: [docs/SKILLS.md](docs/SKILLS.md)
+- **Skills System** — Extensible capabilities with security gate
+  - Plugin-based architecture (`backend/skills/`)
+  - SHA-256 hash verification on every load
+  - Automatic revocation on file changes
+  - Frontend: Skills view with Approve/Toggle/Delete
+  - 3 included skills: `summarize`, `word_count`, `json_formatter`
+  - Documentation: [docs/SKILLS.md](docs/SKILLS.md)
 
-- **Telegram Integration** — Bot mit Inline-Keyboard für Tool-Approvals
-  - SSE-Stream Anbindung an den Agent-Endpoint
-  - User-Whitelist und Session-Management
-  - Befehle: `/start`, `/new`, `/status`
+- **Telegram Integration** — Bot with inline keyboard for tool approvals
+  - SSE stream connection to the agent endpoint
+  - User whitelist and session management
+  - Commands: `/start`, `/new`, `/status`
 
-- **Discord Integration** — Bot mit Button-Components für Tool-Approvals
-  - Embeds mit farbcodiertem Risiko-Level
-  - Channel- und User-Whitelist
-  - Auto-Timeout (120s) für ausstehende Approvals
-  - Dokumentation: [docs/MESSENGER.md](docs/MESSENGER.md)
+- **Discord Integration** — Bot with button components for tool approvals
+  - Embeds with color-coded risk level
+  - Channel and user whitelist
+  - Auto-timeout (120s) for pending approvals
+  - Documentation: [docs/MESSENGER.md](docs/MESSENGER.md)
 
-- **Agent-Endpoint** — Neuer SSE-Endpoint `/api/v1/chat/agent`
-  - Nutzt AgentOrchestrator mit Tool-Approval Loop
-  - Frontend komplett auf Agent-Streaming umgestellt
+- **Agent Endpoint** — New SSE endpoint `/api/v1/chat/agent`
+  - Uses AgentOrchestrator with tool approval loop
+  - Frontend completely switched to agent streaming
 
-- **Konversationshistorie** — Letzte 50 Messages werden geladen
-- **Konversations-Sidebar** — History mit klickbaren Einträgen, Delete-Button
-- **ExamplePrompts** — Klickbar, senden direkt eine Nachricht
-- **Verschlüsselte API-Keys** — Fernet-Verschlüsselung in der SQLite DB
+- **Conversation History** — Last 50 messages are loaded
+- **Conversation Sidebar** — History with clickable entries, delete button
+- **ExamplePrompts** — Clickable, directly sends a message
+- **Encrypted API Keys** — Fernet encryption in the SQLite DB
 
 ### Changed
-- Frontend nutzt jetzt ausschließlich den Agent-Endpoint (SSE)
-- Security-Funktionen zentralisiert in `core/security.py`
-- Tool-Handlers nutzen jetzt zentrale Validierungsfunktionen
+- Frontend now exclusively uses the agent endpoint (SSE)
+- Security functions centralized in `core/security.py`
+- Tool handlers now use centralized validation functions
 
 ### Removed
-- `code_execute` Tool — RestrictedPython ist keine sichere Sandbox
-- `RestrictedPython` Dependency
+- `code_execute` tool — RestrictedPython is not a secure sandbox
+- `RestrictedPython` dependency
 
 ### Security
-- Command-Chaining blockiert (`&&`, `||`, `;`, `|`, Backticks, `$()`)
-- Path-Traversal Schutz über `validate_path()`
-- SSRF-Schutz über `validate_url()` (localhost, interne IPs, AWS IMDS)
-- API-Keys verschlüsselt in DB (Fernet)
-- Skills: Hash-basiertes Sicherheits-Gate mit Auto-Revocation
-- 30+ Security-Tests
+- Command chaining blocked (`&&`, `||`, `;`, `|`, backticks, `$()`)
+- Path traversal protection via `validate_path()`
+- SSRF protection via `validate_url()` (localhost, internal IPs, AWS IMDS)
+- API keys encrypted in DB (Fernet)
+- Skills: Hash-based security gate with auto-revocation
+- 30+ security tests
 
 ## [1.0.0] - 2026-02-04
 
 ### Added
-- **Chat Interface** - Modernes React UI mit Streaming-Support
-- **Multi-Provider LLM** - Unterstützung für Ollama, Claude API und OpenAI API
-- **Controlled Tools** - Tool-System mit expliziter Benutzer-Genehmigung
-  - `file_read` - Dateien lesen
-  - `file_write` - Dateien schreiben (nur in /outputs/)
-  - `file_list` - Verzeichnisse auflisten
-  - `web_fetch` - URLs abrufen
-  - `web_search` - Web-Suche mit DuckDuckGo
-  - `shell_execute` - Shell-Commands (Whitelist)
-- **Tool Approval Modal** - UI für Tool-Genehmigungen mit Risiko-Anzeige
-- **Permission Manager** - Session-basierte Berechtigungen
-- **Audit Dashboard** - Vollständiges Logging aller Tool-Ausführungen
-- **Audit Export** - CSV-Export für Compliance
-- **Docker Support** - One-Command Deployment mit docker-compose
-- **Dark Theme** - Modernes Dark UI mit Cyan-Akzenten
+- **Chat Interface** - Modern React UI with streaming support
+- **Multi-Provider LLM** - Support for Ollama, Claude API, and OpenAI API
+- **Controlled Tools** - Tool system with explicit user approval
+  - `file_read` - Read files
+  - `file_write` - Write files (only to /outputs/)
+  - `file_list` - List directories
+  - `web_fetch` - Fetch URLs
+  - `web_search` - Web search with DuckDuckGo
+  - `shell_execute` - Shell commands (whitelist)
+- **Tool Approval Modal** - UI for tool approvals with risk display
+- **Permission Manager** - Session-based permissions
+- **Audit Dashboard** - Complete logging of all tool executions
+- **Audit Export** - CSV export for compliance
+- **Docker Support** - One-command deployment with docker-compose
+- **Dark Theme** - Modern dark UI with cyan accents
 
 ### Security
-- Shell-Commands nur über Whitelist
-- File-Write nur in /outputs/ Verzeichnis
-- Audit-Trail für alle Aktionen
+- Shell commands only via whitelist
+- File write only to /outputs/ directory
+- Audit trail for all actions
 
 ---
 
 ## Versioning
 
-- **MAJOR**: Inkompatible API-Änderungen
-- **MINOR**: Neue Features (abwärtskompatibel)
-- **PATCH**: Bug Fixes (abwärtskompatibel)
+- **MAJOR**: Incompatible API changes
+- **MINOR**: New features (backwards compatible)
+- **PATCH**: Bug fixes (backwards compatible)
 
 ## Links
 
-- [GitHub Releases](https://github.com/neurovexon/axon-community/releases)
-- [Dokumentation](https://github.com/neurovexon/axon-community/wiki)
+- [GitHub Releases](https://github.com/NeuroVexon/axon-community/releases)
+- [Documentation](https://github.com/NeuroVexon/axon-community/wiki)

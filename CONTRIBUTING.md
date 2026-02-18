@@ -1,40 +1,40 @@
 # Contributing to Axon
 
-Danke, dass du zu Axon beitragen möchtest! Dieses Dokument erklärt, wie du mitmachen kannst.
+Thank you for wanting to contribute to Axon! This document explains how to get involved.
 
 ## Code of Conduct
 
-Bitte lies unseren [Code of Conduct](CODE_OF_CONDUCT.md) bevor du beiträgst.
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
-## Wie kann ich beitragen?
+## How Can I Contribute?
 
 ### Bug Reports
 
-1. Prüfe zuerst, ob der Bug bereits gemeldet wurde
-2. Erstelle ein neues Issue mit dem "Bug Report" Template
-3. Beschreibe das Problem so detailliert wie möglich:
-   - Erwartetes Verhalten
-   - Tatsächliches Verhalten
-   - Schritte zur Reproduktion
-   - Screenshots (wenn hilfreich)
-   - System-Informationen
+1. First check if the bug has already been reported
+2. Create a new issue using the "Bug Report" template
+3. Describe the problem in as much detail as possible:
+   - Expected behavior
+   - Actual behavior
+   - Steps to reproduce
+   - Screenshots (if helpful)
+   - System information
 
 ### Feature Requests
 
-1. Prüfe, ob das Feature bereits vorgeschlagen wurde
-2. Erstelle ein neues Issue mit dem "Feature Request" Template
-3. Beschreibe:
-   - Das Problem, das du lösen möchtest
-   - Deine vorgeschlagene Lösung
-   - Alternativen, die du in Betracht gezogen hast
+1. Check if the feature has already been suggested
+2. Create a new issue using the "Feature Request" template
+3. Describe:
+   - The problem you want to solve
+   - Your proposed solution
+   - Alternatives you have considered
 
 ### Pull Requests
 
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/mein-feature`)
-3. Committe deine Änderungen (`git commit -m 'Add: Mein neues Feature'`)
-4. Push zum Branch (`git push origin feature/mein-feature`)
-5. Öffne einen Pull Request
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes (`git commit -m 'feat: add my new feature'`)
+4. Push to the branch (`git push origin feature/my-feature`)
+5. Open a Pull Request
 
 ## Development Setup
 
@@ -57,7 +57,7 @@ npm install
 npm start
 ```
 
-### Mit Docker
+### With Docker
 
 ```bash
 docker-compose up -d
@@ -68,51 +68,51 @@ docker-compose up -d
 ### Python (Backend)
 
 - Python 3.11+
-- Type Hints für alle Funktionen
-- Docstrings für öffentliche Funktionen
-- Formatierung mit Black
-- Linting mit Ruff
-- Tests mit pytest
+- Type hints for all functions
+- Docstrings for public functions
+- Formatting with Black
+- Linting with Ruff
+- Tests with pytest
 
 ```bash
-# Formatieren
+# Format
 black backend/
 
-# Linting
+# Lint
 ruff check backend/
 
-# Tests
+# Test
 pytest backend/tests/
 ```
 
 ### TypeScript (Frontend)
 
 - TypeScript strict mode
-- Functional Components mit Hooks
-- Tailwind CSS für Styling
-- ESLint für Linting
+- Functional components with hooks
+- Tailwind CSS for styling
+- ESLint for linting
 
 ```bash
-# Linting
+# Lint
 npm run lint
 
-# Type Check
+# Type check
 npm run type-check
 ```
 
 ### Commit Messages
 
-Wir verwenden konventionelle Commit-Messages:
+We use conventional commit messages:
 
-- `feat:` Neues Feature
-- `fix:` Bug Fix
-- `docs:` Dokumentation
-- `style:` Formatierung (kein Code-Change)
-- `refactor:` Code-Refactoring
-- `test:` Tests hinzufügen/ändern
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation
+- `style:` Formatting (no code change)
+- `refactor:` Code refactoring
+- `test:` Add/modify tests
 - `chore:` Maintenance
 
-Beispiele:
+Examples:
 ```
 feat: Add web search tool
 fix: Correct file path validation
@@ -121,28 +121,28 @@ docs: Update installation guide
 
 ## Branch Naming
 
-- `feature/` - Neue Features
-- `fix/` - Bug Fixes
-- `docs/` - Dokumentation
+- `feature/` - New features
+- `fix/` - Bug fixes
+- `docs/` - Documentation
 - `refactor/` - Refactoring
 
-## Pull Request Prozess
+## Pull Request Process
 
-1. Stelle sicher, dass alle Tests bestehen
-2. Aktualisiere die Dokumentation wenn nötig
-3. Der PR wird von mindestens einem Maintainer reviewed
-4. Nach Approval wird der PR gemergt
+1. Make sure all tests pass
+2. Update the documentation if needed
+3. The PR will be reviewed by at least one maintainer
+4. After approval, the PR will be merged
 
-## Lizenz
+## License
 
-Mit deinem Beitrag stimmst du zu, dass dein Code unter der [Apache License 2.0](LICENSE) veröffentlicht wird.
+By contributing, you agree that your code will be published under the [Apache License 2.0](LICENSE).
 
-## Fragen?
+## Questions?
 
-- GitHub Discussions für allgemeine Fragen
-- GitHub Issues für Bugs und Features
+- GitHub Discussions for general questions
+- GitHub Issues for bugs and features
 - Email: service@neurovexon.com
 
 ---
 
-Vielen Dank für deinen Beitrag! 🚀
+Thank you for your contribution!
