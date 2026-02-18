@@ -41,7 +41,13 @@ interface TimelineEntry {
   tool_calls: number
 }
 
-export default function Dashboard() {
+type View = 'dashboard' | 'chat' | 'audit' | 'memory' | 'skills' | 'agents' | 'scheduler' | 'workflows' | 'settings'
+
+interface DashboardProps {
+  onNavigate?: (view: View) => void
+}
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
   const [overview, setOverview] = useState<Overview | null>(null)
   const [tools, setTools] = useState<ToolStat[]>([])
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
@@ -78,14 +84,14 @@ export default function Dashboard() {
   }
 
   const statCards = overview ? [
-    { label: t('dashboard.conversations'), value: overview.conversations, icon: MessageSquare, color: 'text-blue-400' },
-    { label: t('dashboard.messages'), value: overview.messages, icon: TrendingUp, color: 'text-green-400' },
-    { label: t('dashboard.agents'), value: overview.agents, icon: Bot, color: 'text-purple-400' },
-    { label: t('dashboard.toolCalls'), value: overview.tool_calls, icon: Wrench, color: 'text-nv-accent' },
-    { label: t('dashboard.approvalRate'), value: `${overview.approval_rate}%`, icon: ShieldCheck, color: 'text-yellow-400' },
-    { label: t('dashboard.activeTasks'), value: overview.active_tasks, icon: Clock, color: 'text-orange-400' },
-    { label: t('dashboard.workflows'), value: overview.workflows, icon: GitBranch, color: 'text-pink-400' },
-    { label: t('dashboard.skills'), value: overview.active_skills, icon: Puzzle, color: 'text-teal-400' },
+    { label: t('dashboard.conversations'), value: overview.conversations, icon: MessageSquare, color: 'text-blue-400', link: 'chat' as View },
+    { label: t('dashboard.messages'), value: overview.messages, icon: TrendingUp, color: 'text-green-400', link: 'chat' as View },
+    { label: t('dashboard.agents'), value: overview.agents, icon: Bot, color: 'text-purple-400', link: 'agents' as View },
+    { label: t('dashboard.toolCalls'), value: overview.tool_calls, icon: Wrench, color: 'text-nv-accent', link: 'audit' as View },
+    { label: t('dashboard.approvalRate'), value: `${overview.approval_rate}%`, icon: ShieldCheck, color: 'text-yellow-400', link: 'audit' as View },
+    { label: t('dashboard.activeTasks'), value: overview.active_tasks, icon: Clock, color: 'text-orange-400', link: 'scheduler' as View },
+    { label: t('dashboard.workflows'), value: overview.workflows, icon: GitBranch, color: 'text-pink-400', link: 'workflows' as View },
+    { label: t('dashboard.skills'), value: overview.active_skills, icon: Puzzle, color: 'text-teal-400', link: 'skills' as View },
   ] : []
 
   // Einfaches Balkendiagramm fuer Timeline
@@ -105,16 +111,18 @@ export default function Dashboard() {
           {statCards.map((stat) => {
             const Icon = stat.icon
             return (
-              <div
+              <button
                 key={stat.label}
-                className="bg-nv-black-200 rounded-xl p-5 border border-nv-gray-light"
+                onClick={() => onNavigate?.(stat.link)}
+                className="bg-nv-black-200 rounded-xl p-5 border border-nv-gray-light text-left
+                           hover:border-nv-accent hover:bg-nv-black-lighter transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={clsx('w-4 h-4', stat.color)} />
                   <span className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</span>
                 </div>
                 <p className="text-2xl font-bold">{stat.value}</p>
-              </div>
+              </button>
             )
           })}
         </div>

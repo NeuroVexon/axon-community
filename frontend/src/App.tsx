@@ -8,6 +8,8 @@ import AgentsView from './components/Agents/AgentsView'
 import SchedulerView from './components/Scheduler/SchedulerView'
 import WorkflowsView from './components/Workflows/WorkflowsView'
 import Dashboard from './components/Dashboard/Dashboard'
+import { ChatProvider } from './contexts/ChatContext'
+import { useChat } from './hooks/useChat'
 import { api } from './services/api'
 import { Settings as SettingsIcon, Save, Loader2, Check, Key, Eye, EyeOff, Mail, CheckCircle, XCircle, Globe, MessageCircle, Hash } from 'lucide-react'
 import clsx from 'clsx'
@@ -708,20 +710,25 @@ function SettingsView() {
   )
 }
 
-function App() {
+interface AppContentProps {
+  currentSession: string | null
+  setCurrentSession: (session: string | null) => void
+  currentAgentId: string | null
+  setCurrentAgentId: (id: string | null) => void
+}
+
+function AppContent({ currentSession, setCurrentSession, currentAgentId, setCurrentAgentId }: AppContentProps) {
   const [currentView, setCurrentView] = useState<View>('dashboard')
-  const [currentSession, setCurrentSession] = useState<string | null>(null)
-  const [loadConversationId, setLoadConversationId] = useState<string | null>(null)
-  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
+  const { clearChat, loadConversation } = useChat()
 
   const handleSelectConversation = (id: string) => {
     setCurrentSession(id)
-    setLoadConversationId(id)
+    loadConversation(id)
   }
 
   const handleNewChat = () => {
     setCurrentSession(null)
-    setLoadConversationId(null)
+    clearChat()
   }
 
   return (
@@ -738,14 +745,10 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {currentView === 'dashboard' && (
-          <Dashboard />
+          <Dashboard onNavigate={setCurrentView} />
         )}
         {currentView === 'chat' && (
           <ChatContainer
-            key={`${currentSession || 'new'}-${currentAgentId || 'default'}`}
-            sessionId={currentSession}
-            onSessionChange={setCurrentSession}
-            loadConversationId={loadConversationId}
             agentId={currentAgentId}
             onAgentChange={setCurrentAgentId}
           />
@@ -773,6 +776,22 @@ function App() {
         )}
       </main>
     </div>
+  )
+}
+
+function App() {
+  const [currentSession, setCurrentSession] = useState<string | null>(null)
+  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
+
+  return (
+    <ChatProvider onSessionChange={(id) => setCurrentSession(id)} agentId={currentAgentId}>
+      <AppContent
+        currentSession={currentSession}
+        setCurrentSession={setCurrentSession}
+        currentAgentId={currentAgentId}
+        setCurrentAgentId={setCurrentAgentId}
+      />
+    </ChatProvider>
   )
 }
 

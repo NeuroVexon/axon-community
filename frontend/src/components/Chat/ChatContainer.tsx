@@ -16,17 +16,11 @@ interface AgentOption {
 }
 
 interface ChatContainerProps {
-  sessionId: string | null
-  onSessionChange: (id: string) => void
-  loadConversationId?: string | null
   agentId?: string | null
   onAgentChange?: (id: string | null) => void
 }
 
 export default function ChatContainer({
-  sessionId,
-  onSessionChange,
-  loadConversationId,
   agentId,
   onAgentChange,
 }: ChatContainerProps) {
@@ -34,11 +28,11 @@ export default function ChatContainer({
     messages,
     isLoading,
     pendingApproval,
+    currentSessionId,
     sendMessage,
     approveToolCall,
     rejectToolCall,
-    loadConversation,
-  } = useChat(sessionId, onSessionChange, agentId)
+  } = useChat()
 
   const [agents, setAgents] = useState<AgentOption[]>([])
   const [showAgentDropdown, setShowAgentDropdown] = useState(false)
@@ -56,13 +50,6 @@ export default function ChatContainer({
   }, [])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Load conversation from sidebar click
-  useEffect(() => {
-    if (loadConversationId) {
-      loadConversation(loadConversationId)
-    }
-  }, [loadConversationId, loadConversation])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -150,7 +137,7 @@ export default function ChatContainer({
         <MessageInput
           onSend={sendMessage}
           disabled={isLoading || pendingApproval !== null}
-          conversationId={sessionId}
+          conversationId={currentSessionId}
         />
       </div>
 
