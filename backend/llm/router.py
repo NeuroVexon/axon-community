@@ -9,7 +9,7 @@ import logging
 
 from .provider import BaseLLMProvider
 from .ollama import OllamaProvider
-from .claude import ClaudeProvider
+from .anthropic_provider import ClaudeProvider
 from .openai_provider import OpenAIProvider
 from .openai_compatible import OpenAICompatibleProvider
 from .gemini import GeminiProvider

@@ -68,20 +68,6 @@
 | **DSGVO-konform** | On-Premise, keine externe Datenübertragung |
 | **Dark Theme** | Modernes UI mit Cyan-Akzenten |
 
-## Axon vs. OpenClaw / andere Agentic AI
-
-| | Axon | OpenClaw | Typische Chat-UIs |
-|---|---|---|---|
-| Tool-Kontrolle | Jeder Call einzeln genehmigt | Automatisch | Keine Tools |
-| Audit-Log | Vollständig, CSV-Export | Teilweise | Nein |
-| On-Premise | Ja (Ollama) | Nur Cloud | Nur Cloud |
-| Persistentes Memory | Ja (DB-basiert) | Nein | Nein |
-| Skills/Plugins | Ja, mit Sicherheits-Gate | Ja, ohne Gate | Nein |
-| Messenger-Bots | Telegram + Discord | Nein | Nein |
-| CLI / Terminal | Ja (Pipe, Scripting) | Nein | Nein |
-| Open Source | Apache 2.0 | Proprietär | Variiert |
-| DSGVO-konform | Ja | Nein | Variiert |
-
 ## Schnellstart
 
 ### Mit Docker (empfohlen)
@@ -284,18 +270,6 @@ Einzige Bedingung: Copyright-Hinweis und Lizenztext beibehalten.
 | Distribution | Ja |
 | Patent-Nutzung | Ja |
 | Haftungsausschluss | Software wird "as is" bereitgestellt |
-
-## Enterprise
-
-AXON Community Edition ist frei nutzbar — auch kommerziell.
-
-Für erweiterte Anforderungen bietet NeuroVexon:
-
-- **NeuroVexon Assistant** — Enterprise KI-Plattform mit RAG, Multi-User, Admin-Panels
-- **Support & SLA** — Professioneller Support für produktive Umgebungen
-- **On-Premise Deployment** — Beratung und Einrichtung
-
-> [neurovexon.com](https://neurovexon.com)
 
 ## Community
 

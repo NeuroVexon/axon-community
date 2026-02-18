@@ -1,6 +1,6 @@
-# CLAUDE.md - Axon by NeuroVexon
+# DEVELOPMENT.md - Axon by NeuroVexon
 
-> Instruktionsdatei für Claude Code. Lies diese Datei vollständig bevor du am Projekt arbeitest.
+> Entwicklerdokumentation. Lies diese Datei vollständig bevor du am Projekt arbeitest.
 
 ---
 
@@ -8,23 +8,13 @@
 
 **Name:** Axon by NeuroVexon - Community Edition
 **Typ:** Open-Source Agentic AI mit kontrollierten Tool-Fähigkeiten
-**Ziel:** Die sichere, kontrollierte Alternative für Agentic AI (OpenClaw-Konkurrent)
+**Ziel:** Die sichere, kontrollierte Alternative für Agentic AI
 **Tagline:** "Agentic AI - ohne Kontrollverlust."
 
 ### Mission
 
-Axon ist ein **eigenständiges Produkt** — kein abgespeckter NeuroVexon Assistant.
 Kernfeature ist das **kontrollierte Agent-System**: Jede Tool-Aktion wird dem User zur
 Genehmigung vorgelegt, geloggt und ist nachvollziehbar. DSGVO-konform, On-Premise möglich.
-
-### Abgrenzung zum NeuroVexon Assistant
-
-| | AXON Community | NeuroVexon Assistant |
-|---|---|---|
-| Fokus | Agentic AI mit Tool-Kontrolle | RAG-basierte Dokumentenassistenz |
-| Zielgruppe | Entwickler, Power-User, Community | B2B/B2G Enterprise (Sozialsektor, KMU) |
-| Modell | Open Source (Apache 2.0) | Kommerzielles Produkt |
-| Funktion | Funnel → NeuroVexon Brand Awareness | Umsatz |
 
 ---
 
@@ -83,7 +73,7 @@ axon-community/
 │   │   ├── provider.py            # Base Class + Datenmodelle
 │   │   ├── router.py              # Provider-Routing + Runtime-Switching
 │   │   ├── ollama.py              # Ollama Provider
-│   │   ├── claude.py              # Anthropic Claude Provider
+│   │   ├── anthropic_provider.py   # Anthropic Claude Provider
 │   │   └── openai_provider.py     # OpenAI Provider
 │   ├── integrations/
 │   │   ├── telegram.py            # Telegram Bot
@@ -190,7 +180,7 @@ npm start
 **Neue Dateien:** `backend/agent/agent_manager.py`, `backend/api/agents.py`
 **Bestehende Dateien:** `backend/db/models.py`, `backend/agent/orchestrator.py`, `backend/api/chat.py`, `frontend/src/components/Chat/ChatContainer.tsx`
 
-**Problem:** AXON hat nur einen einzigen Agent. Kein Weg verschiedene Rollen, Modelle oder Berechtigungen zu trennen. OpenClaw hat Multi-Agent — aber alle Agents haben die gleichen Rechte.
+**Problem:** AXON hat nur einen einzigen Agent. Kein Weg verschiedene Rollen, Modelle oder Berechtigungen zu trennen.
 
 **Lösung:**
 
@@ -254,7 +244,7 @@ npm start
 **Neue Dateien:** `backend/agent/scheduler.py`, `backend/api/scheduler.py`
 **Bestehende Dateien:** `backend/db/models.py`, `backend/agent/orchestrator.py`, `backend/integrations/telegram.py`, `backend/integrations/discord.py`, `backend/main.py`
 
-**Problem:** AXON ist nur reaktiv. OpenClaw hat Cron-Jobs — aber unkontrolliert (500 Spam-Nachrichten, Passwort-Änderungen).
+**Problem:** AXON ist nur reaktiv. Proaktive Tasks fehlen.
 
 **Lösung:**
 
@@ -285,7 +275,7 @@ npm start
 **Neue Dateien:** `backend/integrations/email.py`, `skills/email_inbox/skill.yaml`, `skills/email_inbox/handler.py`, `skills/email_send/skill.yaml`, `skills/email_send/handler.py`
 **Bestehende Dateien:** `backend/core/config.py`, `backend/core/security.py`, `backend/api/settings.py`
 
-**Problem:** E-Mail ist die Killer-App. OpenClaw hat E-Mails gelöscht und Passwörter geändert. AXON macht E-Mail kontrolliert.
+**Problem:** E-Mail ist die Killer-App. AXON macht E-Mail kontrolliert.
 
 **Lösung:**
 
@@ -310,7 +300,7 @@ npm start
 **Neue Dateien:** `backend/agent/workflows.py`, `backend/api/workflows.py`
 **Bestehende Dateien:** `backend/db/models.py`, `backend/agent/orchestrator.py`
 
-**Problem:** Einzelne Tool-Calls sind limitiert. OpenClaw hat keine Workflows.
+**Problem:** Einzelne Tool-Calls sind limitiert. Workflows fehlen.
 
 **Lösung:**
 
