@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/axon-hero.png" alt="AXON by NeuroVexon" width="420">
+  <img src="assets/axon-logo.png" alt="AXON by NeuroVexon" width="420">
 </p>
 
 <h1 align="center">AXON</h1>
