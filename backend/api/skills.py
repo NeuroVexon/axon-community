@@ -10,7 +10,8 @@ from sqlalchemy import select
 from pydantic import BaseModel
 
 from db.database import get_db
-from db.models import Skill
+from db.models import Skill, User
+from core.dependencies import get_current_active_user
 from agent.skill_loader import SkillLoader, compute_file_hash
 
 router = APIRouter(prefix="/skills", tags=["skills"])
@@ -25,7 +26,7 @@ class SkillToggle(BaseModel):
 
 
 @router.get("")
-async def list_skills(db: AsyncSession = Depends(get_db)):
+async def list_skills(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Alle Skills auflisten (inkl. Scan nach neuen)"""
     loader = SkillLoader(db)
     await loader.scan_skills_dir()
@@ -53,7 +54,7 @@ async def list_skills(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{skill_id}")
-async def get_skill(skill_id: str, db: AsyncSession = Depends(get_db)):
+async def get_skill(skill_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Einzelnen Skill abrufen"""
     skill = await db.get(Skill, skill_id)
     if not skill:
@@ -78,7 +79,7 @@ async def get_skill(skill_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/{skill_id}/approve")
 async def approve_skill(
-    skill_id: str, data: SkillApproval, db: AsyncSession = Depends(get_db)
+    skill_id: str, data: SkillApproval, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """Skill genehmigen oder Genehmigung widerrufen"""
     skill = await db.get(Skill, skill_id)
@@ -105,7 +106,7 @@ async def approve_skill(
 
 @router.post("/{skill_id}/toggle")
 async def toggle_skill(
-    skill_id: str, data: SkillToggle, db: AsyncSession = Depends(get_db)
+    skill_id: str, data: SkillToggle, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """Skill aktivieren/deaktivieren (nur wenn approved)"""
     skill = await db.get(Skill, skill_id)
@@ -123,7 +124,7 @@ async def toggle_skill(
 
 
 @router.delete("/{skill_id}")
-async def delete_skill(skill_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_skill(skill_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Skill aus der DB entfernen (Datei bleibt)"""
     skill = await db.get(Skill, skill_id)
     if not skill:
@@ -135,7 +136,7 @@ async def delete_skill(skill_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/scan")
-async def scan_skills(db: AsyncSession = Depends(get_db)):
+async def scan_skills(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Manueller Scan des Skills-Verzeichnisses"""
     loader = SkillLoader(db)
     found = await loader.scan_skills_dir()

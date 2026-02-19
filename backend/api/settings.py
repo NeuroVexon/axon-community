@@ -10,6 +10,8 @@ from typing import Optional
 
 from db.database import get_db
 from db.models import Settings
+from db.models import User
+from core.dependencies import get_current_active_user
 from core.config import settings as app_settings, LLMProvider
 from core.security import encrypt_value, decrypt_value
 from llm.router import llm_router
@@ -78,7 +80,7 @@ def mask_api_key(key: Optional[str]) -> str:
 
 
 @router.get("")
-async def get_settings(db: AsyncSession = Depends(get_db)):
+async def get_settings(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Get current settings"""
     result = await db.execute(select(Settings))
     db_settings = {s.key: s.value for s in result.scalars().all()}
@@ -147,7 +149,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
 
 
 @router.put("")
-async def update_settings(update: SettingsUpdate, db: AsyncSession = Depends(get_db)):
+async def update_settings(update: SettingsUpdate, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Update settings"""
     updates = update.model_dump(exclude_none=True)
 
@@ -169,7 +171,7 @@ async def update_settings(update: SettingsUpdate, db: AsyncSession = Depends(get
 
 
 @router.delete("/api-key/{key_name}")
-async def delete_api_key(key_name: str, db: AsyncSession = Depends(get_db)):
+async def delete_api_key(key_name: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Delete a stored API key or token"""
     allowed_keys = {
         "anthropic_api_key",
@@ -198,7 +200,7 @@ async def delete_api_key(key_name: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/email/test")
-async def test_email_connection(request: Request, db: AsyncSession = Depends(get_db)):
+async def test_email_connection(request: Request, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """E-Mail Verbindung testen"""
     set_language(get_lang_from_header(request.headers.get("accept-language")))
     from integrations.email import get_email_client_from_settings
@@ -219,7 +221,7 @@ async def test_email_connection(request: Request, db: AsyncSession = Depends(get
 
 
 @router.get("/health")
-async def health_check():
+async def health_check(current_user: User = Depends(get_current_active_user)):
     """Check health of all LLM providers"""
     provider_health = await llm_router.health_check_all()
 

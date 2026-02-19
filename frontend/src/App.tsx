@@ -8,7 +8,9 @@ import AgentsView from './components/Agents/AgentsView'
 import SchedulerView from './components/Scheduler/SchedulerView'
 import WorkflowsView from './components/Workflows/WorkflowsView'
 import Dashboard from './components/Dashboard/Dashboard'
+import LoginPage from './components/Auth/LoginPage'
 import { ChatProvider } from './contexts/ChatContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { useChat } from './hooks/useChat'
 import { api } from './services/api'
 import { Settings as SettingsIcon, Save, Loader2, Check, Key, Eye, EyeOff, Mail, CheckCircle, XCircle, Globe, MessageCircle, Hash, Trash2 } from 'lucide-react'
@@ -836,7 +838,25 @@ function AppContent({ currentSession, setCurrentSession, currentAgentId, setCurr
   )
 }
 
-function App() {
+function AuthGate() {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-nv-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-nv-accent" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
+
+  return <AuthenticatedApp />
+}
+
+function AuthenticatedApp() {
   const [currentSession, setCurrentSession] = useState<string | null>(null)
   const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
 
@@ -849,6 +869,14 @@ function App() {
         setCurrentAgentId={setCurrentAgentId}
       />
     </ChatProvider>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   )
 }
 

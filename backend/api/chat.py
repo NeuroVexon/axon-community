@@ -12,7 +12,8 @@ import json
 import logging
 
 from db.database import get_db
-from db.models import Agent, Conversation, Message, Settings, UploadedDocument
+from db.models import Agent, Conversation, Message, Settings, UploadedDocument, User
+from core.dependencies import get_current_active_user
 from llm.router import llm_router
 from llm.provider import ChatMessage
 from agent.orchestrator import AgentOrchestrator
@@ -61,7 +62,7 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/send")
-async def send_message(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def send_message(request: ChatRequest, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Send a message and get a response (non-streaming)"""
     # Load settings and update router
     db_settings = await load_settings_to_router(db)
@@ -130,7 +131,7 @@ async def send_message(request: ChatRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/stream")
-async def stream_message(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def stream_message(request: ChatRequest, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Send a message and stream the response"""
     # Load settings and update router
     db_settings = await load_settings_to_router(db)
@@ -204,7 +205,7 @@ async def stream_message(request: ChatRequest, db: AsyncSession = Depends(get_db
 
 @router.post("/agent")
 async def agent_message(
-    request: ChatRequest, raw_request: Request, db: AsyncSession = Depends(get_db)
+    request: ChatRequest, raw_request: Request, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """
     Send a message through the Agent Orchestrator (SSE stream).
@@ -408,7 +409,7 @@ def resolve_approval(approval_id: str, decision: str) -> bool:
 
 
 @router.post("/approve/{approval_id}")
-async def approve_agent_tool(approval_id: str, decision: str = "once"):
+async def approve_agent_tool(approval_id: str, decision: str = "once", current_user: User = Depends(get_current_active_user)):
     """Approve or reject a pending tool request from the agent stream"""
     if decision not in ("once", "session", "never"):
         raise HTTPException(
@@ -422,7 +423,7 @@ async def approve_agent_tool(approval_id: str, decision: str = "once"):
 
 
 @router.get("/conversations")
-async def list_conversations(limit: int = 50, db: AsyncSession = Depends(get_db)):
+async def list_conversations(limit: int = 50, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """List recent conversations"""
     result = await db.execute(
         select(Conversation).order_by(Conversation.updated_at.desc()).limit(limit)
@@ -440,7 +441,7 @@ async def list_conversations(limit: int = 50, db: AsyncSession = Depends(get_db)
 
 
 @router.get("/conversations/{conversation_id}")
-async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_db)):
+async def get_conversation(conversation_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Get a conversation with messages"""
     from sqlalchemy.orm import selectinload
 
@@ -472,7 +473,7 @@ async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_
 
 
 @router.delete("/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Delete a conversation"""
     conversation = await db.get(Conversation, conversation_id)
     if not conversation:

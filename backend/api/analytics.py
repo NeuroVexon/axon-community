@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from db.database import get_db
 from db.models import (
+    User,
     Conversation,
     Message,
     AuditLog,
@@ -17,12 +18,13 @@ from db.models import (
     Workflow,
     Skill,
 )
+from core.dependencies import get_current_active_user
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("/overview")
-async def get_overview(db: AsyncSession = Depends(get_db)):
+async def get_overview(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Dashboard-Uebersicht: Kernmetriken"""
     # Conversations
     conv_count = await db.scalar(select(func.count(Conversation.id)))
@@ -75,7 +77,7 @@ async def get_overview(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/tools")
-async def get_tool_stats(db: AsyncSession = Depends(get_db)):
+async def get_tool_stats(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Tool-Statistiken: Nutzung, Fehlerrate, Ausfuehrungszeit"""
     # Meistgenutzte Tools
     result = await db.execute(
@@ -121,7 +123,7 @@ async def get_tool_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/timeline")
-async def get_timeline(days: int = 30, db: AsyncSession = Depends(get_db)):
+async def get_timeline(days: int = 30, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """30-Tage Verlauf: Conversations und Tool-Calls pro Tag"""
     cutoff = datetime.utcnow() - timedelta(days=days)
 
@@ -165,7 +167,7 @@ async def get_timeline(days: int = 30, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/agents")
-async def get_agent_stats(db: AsyncSession = Depends(get_db)):
+async def get_agent_stats(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Agent-Statistiken"""
     result = await db.execute(
         select(Agent).where(Agent.enabled).order_by(Agent.is_default.desc())
@@ -194,7 +196,7 @@ async def get_agent_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/tasks")
-async def get_task_overview(db: AsyncSession = Depends(get_db)):
+async def get_task_overview(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Scheduled Tasks Uebersicht"""
     result = await db.execute(
         select(ScheduledTask).order_by(ScheduledTask.enabled.desc(), ScheduledTask.name)

@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 from db.database import get_db
-from db.models import Workflow, WorkflowRun
+from db.models import Workflow, WorkflowRun, User
+from core.dependencies import get_current_active_user
 from agent.workflows import WorkflowEngine, workflow_to_dict, run_to_dict
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -37,7 +38,7 @@ class WorkflowUpdate(BaseModel):
 
 
 @router.get("")
-async def list_workflows(db: AsyncSession = Depends(get_db)):
+async def list_workflows(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Alle Workflows auflisten"""
     result = await db.execute(select(Workflow).order_by(Workflow.created_at.desc()))
     workflows = result.scalars().all()
@@ -45,7 +46,7 @@ async def list_workflows(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{workflow_id}")
-async def get_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
+async def get_workflow(workflow_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Workflow Details"""
     wf = await db.get(Workflow, workflow_id)
     if not wf:
@@ -54,7 +55,7 @@ async def get_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("")
-async def create_workflow(data: WorkflowCreate, db: AsyncSession = Depends(get_db)):
+async def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Neuen Workflow erstellen"""
     # Safety: Max Workflows
     result = await db.execute(select(Workflow))
@@ -89,7 +90,7 @@ async def create_workflow(data: WorkflowCreate, db: AsyncSession = Depends(get_d
 
 @router.put("/{workflow_id}")
 async def update_workflow(
-    workflow_id: str, data: WorkflowUpdate, db: AsyncSession = Depends(get_db)
+    workflow_id: str, data: WorkflowUpdate, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """Workflow aktualisieren"""
     wf = await db.get(Workflow, workflow_id)
@@ -113,7 +114,7 @@ async def update_workflow(
 
 
 @router.delete("/{workflow_id}")
-async def delete_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_workflow(workflow_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Workflow loeschen"""
     wf = await db.get(Workflow, workflow_id)
     if not wf:
@@ -125,7 +126,7 @@ async def delete_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{workflow_id}/run")
-async def run_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
+async def run_workflow(workflow_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Workflow manuell ausfuehren"""
     wf = await db.get(Workflow, workflow_id)
     if not wf:
@@ -137,7 +138,7 @@ async def run_workflow(workflow_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{workflow_id}/history")
-async def workflow_history(workflow_id: str, db: AsyncSession = Depends(get_db)):
+async def workflow_history(workflow_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Workflow-Ausfuehrungshistorie"""
     result = await db.execute(
         select(WorkflowRun)

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from mcp.server import mcp_server
 from core.security import rate_limiter
+from core.security import decode_token
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +46,26 @@ async def _get_mcp_settings(db: AsyncSession) -> dict:
 
 
 def _validate_auth(request: Request, mcp_settings: dict) -> bool:
-    """Bearer Token validieren"""
-    token = mcp_settings.get("auth_token", "")
-    if not token:
-        return True  # Kein Token konfiguriert = offen (fuer lokale Nutzung)
-
+    """Bearer Token oder JWT validieren"""
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return False
-    return auth_header[7:] == token
+        token = mcp_settings.get("auth_token", "")
+        return not token  # Kein Token konfiguriert = offen
+
+    bearer_value = auth_header[7:]
+
+    # Try MCP token first
+    mcp_token = mcp_settings.get("auth_token", "")
+    if mcp_token and bearer_value == mcp_token:
+        return True
+
+    # Try JWT token
+    payload = decode_token(bearer_value)
+    if payload and payload.get("type") == "access":
+        return True
+
+    # If no MCP token configured and JWT failed, allow open access
+    return not mcp_token
 
 
 @router.get("/v1/sse")

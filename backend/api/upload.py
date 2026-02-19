@@ -12,7 +12,8 @@ from sqlalchemy import select
 from typing import Optional
 
 from db.database import get_db
-from db.models import UploadedDocument
+from db.models import UploadedDocument, User
+from core.dependencies import get_current_active_user
 from agent.document_handler import is_allowed_file, extract_text, ALLOWED_EXTENSIONS
 from core.security import sanitize_filename
 from core.i18n import t, set_language, get_lang_from_header
@@ -28,6 +29,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 @router.post("")
 async def upload_document(
     request: Request,
+    current_user: User = Depends(get_current_active_user),
     file: UploadFile = File(...),
     conversation_id: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -91,6 +93,7 @@ async def upload_document(
 
 @router.get("")
 async def list_documents(
+    current_user: User = Depends(get_current_active_user),
     conversation_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
@@ -118,7 +121,7 @@ async def list_documents(
 
 @router.delete("/{doc_id}")
 async def delete_document(
-    doc_id: str, request: Request, db: AsyncSession = Depends(get_db)
+    doc_id: str, request: Request, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """Dokument loeschen"""
     set_language(get_lang_from_header(request.headers.get("accept-language")))

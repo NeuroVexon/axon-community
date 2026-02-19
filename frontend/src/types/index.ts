@@ -112,6 +112,28 @@ export interface HealthStatus {
   providers: Record<LLMProvider, boolean>
 }
 
+// Auth Types
+export interface AuthUser {
+  id: string
+  email: string
+  display_name: string | null
+  role: 'admin' | 'user'
+  is_active: boolean
+  created_at: string | null
+}
+
+export interface AuthTokens {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  user: AuthUser
+}
+
+export interface AuthStatus {
+  has_users: boolean
+  registration_enabled: boolean
+}
+
 // UI State Types
 export interface ChatState {
   messages: Message[]

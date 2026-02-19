@@ -12,6 +12,17 @@ _current_language: ContextVar[str] = ContextVar("lang", default="de")
 
 TRANSLATIONS = {
     "de": {
+        # Auth
+        "auth.registration_disabled": "Registrierung ist deaktiviert",
+        "auth.email_exists": "E-Mail-Adresse bereits registriert",
+        "auth.invalid_credentials": "Ungueltige E-Mail oder Passwort",
+        "auth.account_disabled": "Konto ist deaktiviert",
+        "auth.password_too_short": "Passwort muss mindestens 8 Zeichen lang sein",
+        "auth.invalid_email": "Ungueltige E-Mail-Adresse",
+        "auth.invalid_refresh_token": "Ungueltiger oder abgelaufener Refresh-Token",
+        "auth.user_created": "Benutzer erfolgreich erstellt",
+        "auth.first_user_admin": "Erster Benutzer wird automatisch Administrator",
+        "auth.logout_success": "Erfolgreich abgemeldet",
         # Orchestrator
         "orch.agent_no_access": "Agent '{agent}' hat keinen Zugriff auf {tool}",
         "orch.tool_not_allowed": "Tool {tool} ist fuer diesen Agent nicht erlaubt.",
@@ -98,6 +109,17 @@ TRANSLATIONS = {
         "bot.no_token": "{channel} Bot Token nicht gesetzt.",
     },
     "en": {
+        # Auth
+        "auth.registration_disabled": "Registration is disabled",
+        "auth.email_exists": "Email address already registered",
+        "auth.invalid_credentials": "Invalid email or password",
+        "auth.account_disabled": "Account is disabled",
+        "auth.password_too_short": "Password must be at least 8 characters",
+        "auth.invalid_email": "Invalid email address",
+        "auth.invalid_refresh_token": "Invalid or expired refresh token",
+        "auth.user_created": "User created successfully",
+        "auth.first_user_admin": "First user is automatically administrator",
+        "auth.logout_success": "Successfully logged out",
         # Orchestrator
         "orch.agent_no_access": "Agent '{agent}' does not have access to {tool}",
         "orch.tool_not_allowed": "Tool {tool} is not allowed for this agent.",

@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 from db.database import get_db
-from db.models import ScheduledTask
+from db.models import ScheduledTask, User
+from core.dependencies import get_current_active_user
 from agent.scheduler import task_scheduler, MAX_ACTIVE_TASKS
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -67,7 +68,7 @@ def _validate_cron(expression: str) -> bool:
 
 
 @router.get("")
-async def list_tasks(db: AsyncSession = Depends(get_db)):
+async def list_tasks(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Alle geplanten Tasks auflisten"""
     result = await db.execute(
         select(ScheduledTask).order_by(ScheduledTask.created_at.desc())
@@ -77,7 +78,7 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{task_id}")
-async def get_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def get_task(task_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Task Details"""
     task = await db.get(ScheduledTask, task_id)
     if not task:
@@ -86,7 +87,7 @@ async def get_task(task_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("")
-async def create_task(data: TaskCreate, db: AsyncSession = Depends(get_db)):
+async def create_task(data: TaskCreate, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Neuen Task erstellen"""
     # Safety: Max Tasks
     result = await db.execute(select(ScheduledTask).where(ScheduledTask.enabled))
@@ -122,7 +123,7 @@ async def create_task(data: TaskCreate, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{task_id}")
 async def update_task(
-    task_id: str, data: TaskUpdate, db: AsyncSession = Depends(get_db)
+    task_id: str, data: TaskUpdate, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)
 ):
     """Task aktualisieren"""
     task = await db.get(ScheduledTask, task_id)
@@ -148,7 +149,7 @@ async def update_task(
 
 
 @router.delete("/{task_id}")
-async def delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_task(task_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Task loeschen"""
     task = await db.get(ScheduledTask, task_id)
     if not task:
@@ -164,7 +165,7 @@ async def delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/run")
-async def run_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def run_task(task_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Task sofort manuell ausfuehren"""
     task = await db.get(ScheduledTask, task_id)
     if not task:
@@ -179,7 +180,7 @@ async def run_task(task_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/toggle")
-async def toggle_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def toggle_task(task_id: str, current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Task aktivieren/deaktivieren"""
     task = await db.get(ScheduledTask, task_id)
     if not task:

@@ -12,6 +12,8 @@ import io
 
 from db.database import get_db
 from db.models import AuditLog
+from db.models import User
+from core.dependencies import get_current_active_user
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -23,6 +25,7 @@ async def list_audit_logs(
     tool_name: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List audit logs with optional filters"""
@@ -58,7 +61,9 @@ async def list_audit_logs(
 
 @router.get("/stats")
 async def get_audit_stats(
-    session_id: Optional[str] = None, db: AsyncSession = Depends(get_db)
+    session_id: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get audit statistics"""
     from sqlalchemy import func
@@ -109,6 +114,7 @@ async def get_audit_stats(
 async def export_audit_logs(
     format: str = "csv",
     session_id: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Export audit logs as CSV or JSON"""

@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 from db.database import get_db
+from db.models import User
+from core.dependencies import get_current_active_user
 from agent.tool_registry import tool_registry
 from agent.permission_manager import permission_manager, PermissionScope
 from agent.audit_logger import AuditLogger, AuditEventType
@@ -31,7 +33,7 @@ class ToolInfo(BaseModel):
 
 
 @router.get("")
-async def list_tools():
+async def list_tools(current_user: User = Depends(get_current_active_user)):
     """List all available tools"""
     tools = tool_registry.list_tools()
     return [
@@ -48,7 +50,7 @@ async def list_tools():
 
 
 @router.get("/{tool_name}")
-async def get_tool(tool_name: str):
+async def get_tool(tool_name: str, current_user: User = Depends(get_current_active_user)):
     """Get details for a specific tool"""
     tool = tool_registry.get(tool_name)
     if not tool:
@@ -66,7 +68,9 @@ async def get_tool(tool_name: str):
 
 @router.post("/approve")
 async def approve_tool(
-    request: ToolApprovalRequest, db: AsyncSession = Depends(get_db)
+    request: ToolApprovalRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Approve or reject a tool execution"""
     # Validate tool exists
@@ -109,7 +113,10 @@ async def approve_tool(
 
 @router.post("/revoke")
 async def revoke_permission(
-    session_id: str, tool: str, db: AsyncSession = Depends(get_db)
+    session_id: str,
+    tool: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Revoke a tool permission"""
     permission_manager.revoke_permission(session_id, tool)
@@ -126,14 +133,14 @@ async def revoke_permission(
 
 
 @router.post("/unblock")
-async def unblock_tool(tool: str, params: Optional[dict] = None):
+async def unblock_tool(tool: str, params: Optional[dict] = None, current_user: User = Depends(get_current_active_user)):
     """Remove a tool from the blocklist"""
     permission_manager.unblock(tool, params)
     return {"status": "unblocked", "tool": tool}
 
 
 @router.get("/permissions/{session_id}")
-async def get_session_permissions(session_id: str):
+async def get_session_permissions(session_id: str, current_user: User = Depends(get_current_active_user)):
     """Get all permissions for a session (debug)"""
     permissions = permission_manager.get_session_permissions(session_id)
     return {"session_id": session_id, "permissions": permissions}

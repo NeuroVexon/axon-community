@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
 
+    # JWT Authentication
+    jwt_secret: Optional[str] = None  # Falls leer, faellt auf secret_key zurueck
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    registration_enabled: bool = True
+
     # Tool Execution
     outputs_dir: str = "./outputs"
     max_file_size_mb: int = 10

@@ -7,12 +7,64 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta
+from typing import Optional
 
 from cryptography.fernet import Fernet
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
+
+
+def _get_jwt_secret() -> str:
+    """Get JWT secret, falling back to secret_key"""
+    return settings.jwt_secret or settings.secret_key
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    )
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, _get_jwt_secret(), algorithm=settings.jwt_algorithm)
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT refresh token"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(days=settings.refresh_token_expire_days)
+    )
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, _get_jwt_secret(), algorithm=settings.jwt_algorithm)
+
+
+def decode_token(token: str) -> Optional[dict]:
+    """Decode and validate a JWT token. Returns payload or None."""
+    try:
+        payload = jwt.decode(
+            token, _get_jwt_secret(), algorithms=[settings.jwt_algorithm]
+        )
+        return payload
+    except JWTError:
+        return None
 
 
 def generate_session_id() -> str:
